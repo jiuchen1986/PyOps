@@ -17,16 +17,20 @@ logging.basicConfig(format=FORMAT)
 log = logging.getLogger(__name__)
 LOG_DICT = {'module_name': __name__}
 
-MACHINE_CPUS = 24
-MACHINE_TAG = ("REMOTE-MGMT")
+DEFAULT_MACHINE_TAG = 'REMOTE-MGMT'
 
 parser = argparse.ArgumentParser(description='Testing connection to the maas server.')
 parser.add_argument('-d', '--deploy', dest='deploy', default=argparse.SUPPRESS, nargs='?', const='true', 
                               help='Deploy a server in maas.')
 parser.add_argument('-c', '--check', dest='check', default=argparse.SUPPRESS, nargs='?', const='true', 
                               help='Check a server in maas.')
-parser.add_argument('-n', '--checkname', dest='checkname', nargs='?', default=argparse.SUPPRESS, 
-                              help='The system name of the node to be checked.')
+parser.add_argument('-r', '--release', dest='release', default=argparse.SUPPRESS, nargs='?', const='true', 
+                              help='release a server in maas.')
+
+parser.add_argument('-n', '--machinename', dest='machinename', nargs='?', default=argparse.SUPPRESS, 
+                              help='The name of the node to be operated on.')
+parser.add_argument('-t', '--machinetags', dest='machinetags', nargs='*', default=[DEFAULT_MACHINE_TAG], 
+                              help='The tags of the node to be operated on.')
 
 parser.add_argument('-i', '--ip', dest='maas_ip', default=DEFAULT_IP, nargs='?', 
                               help='The ip address of the maas api server.')
@@ -64,8 +68,14 @@ log.info("the default OS of maas is %s", client.maas.get_default_os(), extra=LOG
 log.info("the default distro series for deployments is %s", client.maas.get_default_distro_series(), extra=LOG_DICT)
 
 def maas_deploy_machine():
-  machine = client.machines.allocate(tags=MACHINE_TAG)
-  log.info("commissioning a machine with tags of %s", repr(MACHINE_TAG), extra=LOG_DICT)
+  if getattr(args, 'machinename', None) != None:
+    machine = client.machines.allocate(hostname=args.machinename)
+    log.info("allocate a machine with name of %s", args.machinename, extra=LOG_DICT)
+  else:
+    if DEFAULT_MACHINE_TAG not in args.machinetags:
+      args.machinetags.append(DEFAULT_MACHINE_TAG)
+    machine = client.machines.allocate(tags=args.machinetags)
+    log.info("allocate a machine with tags of %s", repr(args.machinetags), extra=LOG_DICT)
   machine.deploy()
   log.info("deploying a machine with the name of %s", machine.hostname, extra=LOG_DICT)
   while machine.status == NodeStatus.DEPLOYING:
@@ -77,10 +87,16 @@ def maas_deploy_machine():
 
 def maas_check_machine():
   out_format = "hostname: %s, systemid: %s, cpus: %d, status: %s, ipaddresses: %s"
-  log.info("check the machine with the name of %s", args.checkname, extra=LOG_DICT)
+  log.info("check the machine with the name of %s", args.machinename, extra=LOG_DICT)
   for machine in client.machines.list():
-    if machine.hostname == args.checkname:
+    if machine.hostname == args.machinename:
       print(out_format % (machine.hostname, machine.system_id, machine.cpus, machine.status_name, machine.ip_addresses))
+
+def maas_release_machine():
+  for machine in client.machines.list():
+    if machine.hostname == args.machinename:
+      log.info("release the machine with name of %s", args.machinename, extra=LOG_DICT)
+      machine.release()
 
 if __name__ == '__main__':
 
@@ -89,3 +105,6 @@ if __name__ == '__main__':
 
   if (getattr(args, 'check', None) != None):
     maas_check_machine()
+
+  if (getattr(args, 'release', None) != None):
+    maas_release_machine()
