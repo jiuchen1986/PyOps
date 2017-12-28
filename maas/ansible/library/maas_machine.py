@@ -128,13 +128,14 @@ except ImportError:
     HAS_MAAS_LIB = False
     
 try:
-    import timeout_decorator as timeout
+    import timeout_decorator
     HAS_TIMEOUT = True
 except ImportError:
     HAS_TIMEOUT = False
 
 import typing
 import repr
+
 from ansible.module_utils.basic import AnsibleModule
 
 DEFAULT_WAIT_TIME = 300
@@ -235,10 +236,32 @@ def run_module():
         # get the current result
         def get_result(self):
             return self._result
+            
+        # clear the current result
+        def _clear_result(self):
+            self._result = dict(status=None, 
+                                error_msg=None, 
+                                machine=None)
+        
+        # get the current result
+        def get_clean_machines(self):
+            return self._clean_machines
+        
+        # release the machines in the clean group
+        def release_clean_machines(self):
+            for machine in self._clean_machines:
+                try:
+                    machine.release()
+                except MAASException as e:
+                    self._error_print("maas error \'{}\' occurs when clean \
+                                        the machine \'{}\'", e, machine.hostname)
+                except Exception:
+                    self._error_print("error \'{}\' occurs when clean \
+                                        the machine \'{}\'", e, machine.hostname)
         
         # called when an error occurs
-        def _handle_error(self, error_msg, **kwargs):
-            self._error_print(error_msg, **kwargs)
+        def _handle_error(self, *args, error_msg='unknown error occurs', **kwargs):
+            self._error_print(error_msg, *args, **kwargs)
             self._result['status'] = RESULT_ERROR
             self._result['error_msg'] = error_msg
             
@@ -246,17 +269,19 @@ def run_module():
             self._result['machine'] = machine
         
         # called when timeout occurs
-        def _handle_timeout(self, machine):
+        def _handle_timeout(self, *args, msg='timeout occurs', **kwargs):
+            self._info_print(msg, *args, **kwargs)
             self._result['status'] = RESULT_TIMEOUT
-            self._add_machine_to_result(machine)
+            self._result['error_msg'] = msg
             
         # called when complete
-        def _handle_complete(self, machine):
+        def _handle_complete(self, *args, msg='process complete', **kwargs):
+            self._info_print(msg, *args, **kwargs)
             self._result['status'] = RESULT_COMPLETE
-            self._add_machine_to_result(machine)
             
         # called when machine is allocated
-        def _handle_alloc(self, machine):
+        def _handle_alloc(self, machine, *args, msg='allocate complete', **kwargs):
+            self._info_print(msg, *args, **kwargs)
             self._result['status'] = RESULT_ALLOC
             self._add_machine_to_result(machine)
         
@@ -267,43 +292,49 @@ def run_module():
             except MAASException as e:
                 msg = "maas error \'{}\' occurs when connect \
                                 to the maas api server".format(e)
-                self._handle_error(msg)
+                self._handle_error(error_msg=msg)
             except Exception as e:
                 msg = "error \'{}\' occurs when connect \
                                 to the maas api server".format(e)
-                self._handle_error(msg)                                
+                self._handle_error(error_msg=msg)                                
             else:
                 if not self.client.users.whoami().is_admin:
-                    self._handle_error("the current user is not an admin")
+                    self._handle_error(error_msg="the current user is not an admin")
                 self._info_print("connected to the maas api server")
     
         # a private func to allocate a machine according to the input params
         # allocation is executed only when no error in current result
         def _allocate_machine(self):
-            if not self._result['error_msg']:
+            if not self._result['status'] == RESULT_ERROR:
                 try:
                     m = self.client.machines.allocate(hostname=self.name_match, 
                                                       tags=self.tags_match, 
                                                       zone=self.zone_match)
-                    self._info_print("allocate the machine with: ")
-                    self._info_print("name: {}, tags: {}, zone: {}", 
+                    if not m.status == NodeStatus.ALLOCATED:
+                        raise Exception("fail to allocate machine")
+                    msg="allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
                                      m.hostname, 
                                      repr(m.tags), 
                                      m.zone.name)
-                    self._handle_alloc(m)
+                    self._handle_alloc(m, msg=msg)
                 except MAASException as e:
                     msg = "maas error \'{}\' occurs when allocate \
                                         the machine with: \nname: {}, tags: {}, zone: {}".format( 
                                         e, self.name_match, repr(self.tags_match), self.zone_match)
-                    self._handle_error(msg)
+                    self._handle_error(error_msg=msg)
                 except Exception as e:
                     msg = "error \'{}\' occurs when allocate \
                                         the machine with: \nname: {}, tags: {}, zone: {}".format( 
                                         e, self.name_match, repr(self.tags_match), self.zone_match)
-                    self._handle_error(msg)
+                    self._handle_error(error_msg=msg)
     
+        # a exception raised when timeout occurs
+        class TimeoutException(Exception):
+            pass
+        
         # a private func to deploy a machine according to the input params
         # deployment is called only when the current result's status is RESULT_ALLOC
+        @timeout_decorator.timeout(self.wait_time, timeout_exception=TimeoutException)
         def _deploy_machine(self):
             if self._result['status'] == RESULT_ALLOC:
                 try:
@@ -324,7 +355,7 @@ def run_module():
                                        repr(self._result['machine'].tags), 
                                        self._result['machine'].zone.name,
                                        self._result['machine'].status_name)
-                    self._handle_error(msg)
+                    self._handle_error(error_msg=msg)
                 except Exception as e:
                     self._result['machine'].refresh()
                     msg = "error \'{}\' occurs when deploy the machine with: \
@@ -333,7 +364,77 @@ def run_module():
                                        repr(self._result['machine'].tags), 
                                        self._result['machine'].zone.name,
                                        self._result['machine'].status_name)
-                    self._handle_error(msg)
+                    self._handle_error(error_msg=msg)                
+        
+        # a exception raised when deploying fails in ensure deploy
+        class DeployFail(Exception):
+            pass
+        
+        # called when ensure is true that repeats machine deployment until succeed
+        # machines that failed to be deployed or encounter the timeout will be
+        # added to the _clean_machines
+        def _ensure_deploy_machine(self):
+            while not self._result['status'] == RESULT_COMPLETE:
+                try:
+                    self._allocate_machine()
+                    if not self._result['status'] == RESULT_ALLOC:
+                        raise DeployFail("machine allocation fails")
+                    try:
+                        self._deploy_machine()
+                        if self._result['machine']:
+                            self._result['machine'].refresh()
+                            if self._result['machine'].status == NodeStatus.DEPLOYED:
+                                self._result['status'] = RESULT_COMPLETE
+                            else:
+                                raise DeployFail("machine deployment fails")
+                        else:
+                            raise DeployFail("machine deployment fails")
+                    except TimeoutException:
+                        if self._result['machine']:
+                            self._result['machine'].refresh()
+                            msg = "timeout occurs when deploy the machine with: \
+                                            \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                                              self._result['machine'].hostname, 
+                                              repr(self._result['machine'].tags), 
+                                              self._result['machine'].zone.name,
+                                              self._result['machine'].status_name)
+                        else:
+                            msg = "a timeout occurs"
+                        self._handle_timeout(msg=msg)
+                        raise DeployFail("machine deployment fails")
+                except DeployFail:
+                    if self._result['machine']:
+                        self._clean_machines.append(self._result['machine'])
+                    self._clear_result()
+        
+        # a public func to deploy a machine according to the input params
+        def deploy_machine(self):
+            if not self.ensure:
+                self._allocate_machine()
+                try:
+                    self._deploy_machine()
+                    if not self._result['status'] == RESULT_ERROR:
+                        msg = "complete the process of deploying the machine with: \
+                                    \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                                       self._result['machine'].hostname, 
+                                       repr(self._result['machine'].tags), 
+                                       self._result['machine'].zone.name,
+                                       self._result['machine'].status_name)
+                        self._handle_complete(msg=msg)
+                except TimeoutException:
+                    if self._result['machine']:
+                        self._result['machine'].refresh()
+                        msg = "timeout occurs when deploy the machine with: \
+                                        \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                                          self._result['machine'].hostname, 
+                                          repr(self._result['machine'].tags), 
+                                          self._result['machine'].zone.name,
+                                          self._result['machine'].status_name)
+                    else:
+                        msg = "a timeout occurs"
+                    self._handle_timeout(msg=msg)
+            else:
+                self._ensure_deploy_machine()
         
         # a private func to release a machine specified by the name of the machine
         def _release_machine(self, name, zone):        
@@ -360,7 +461,7 @@ def run_module():
                 self._handle_error(msg)
             else:
                 self._release_machine(self.name_match, self.zone_match)
-                if not self._result['error_msg']:
+                if not self._result['status'] == RESULT_ERROR:
                     self._result['status'] = RESULT_COMPLETE
             
             
