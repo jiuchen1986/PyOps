@@ -134,7 +134,6 @@ except ImportError:
     HAS_TIMEOUT = False
 
 import typing
-import repr
 
 from ansible.module_utils.basic import AnsibleModule
 
@@ -186,24 +185,25 @@ def run_module():
 
 
     #### a handler class used to process the maas machine operations ####
+    # since the timeout decorator is used, the wait_time should be a varible defined outside the class
     class MaasMachineHandler(object):
 
-        try:
-            DEFAULT_WAIT_TIME
-        except Exception:
-            DEFAULT_WAIT_TIME = 300
+        # try:
+            # DEFAULT_WAIT_TIME
+        # except Exception:
+            # DEFAULT_WAIT_TIME = 300
             
-        (RESULT_ERROR, RESULT_TIMEOUT, RESULT_COMPLETE, RESULT_ALLOC) = \
-        ('error', 'timeout', 'complete', 'allocated')
+        RESULT_ERROR, RESULT_TIMEOUT, RESULT_COMPLETE, RESULT_ALLOC = \
+        'error', 'timeout', 'complete', 'allocated'
         
         def __init__(self, 
                     maas_url: str, 
                     api_key: str, 
-                    os: str=None
+                    os: str=None,
                     wait: bool=True, 
-                    wait_time: int=DEFAULT_WAIT_TIME, 
+                    # wait_time: int=DEFAULT_WAIT_TIME, 
                     ensure: bool=True, 
-                    target_name: str=None
+                    target_name: str=None,
                     tags_match: typing.Sequence[str]=None, 
                     zone_match: str='default', 
                     name_match: str=None,  
@@ -213,7 +213,7 @@ def run_module():
             self.api_key = api_key
             self.os = os
             self.wait = wait
-            self.wait_time = wait_time
+            # self.wait_time = wait_time
             self.ensure = ensure
             self.target_name = target_name
             self.tags_match = tags_match
@@ -239,9 +239,9 @@ def run_module():
             
         # clear the current result
         def _clear_result(self):
-            self._result = dict(status=None, 
-                                error_msg=None, 
-                                machine=None)
+            self._result['status'] = None
+            self._result['error_msg'] = None
+            self._result['machine'] = None
         
         # get the current result
         def get_clean_machines(self):
@@ -334,7 +334,7 @@ def run_module():
         
         # a private func to deploy a machine according to the input params
         # deployment is called only when the current result's status is RESULT_ALLOC
-        @timeout_decorator.timeout(self.wait_time, timeout_exception=TimeoutException)
+        @timeout_decorator.timeout(module.params['wait_time'], timeout_exception=TimeoutException)
         def _deploy_machine(self):
             if self._result['status'] == RESULT_ALLOC:
                 try:
