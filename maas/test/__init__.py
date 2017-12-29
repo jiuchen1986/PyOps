@@ -7,26 +7,24 @@ try:
     from maas.client.enum import NodeStatus
     from maas.client.errors import MAASException
     from maas.client.viscera.machines import MachineNotFound
+    from maas.client.bones import CallError
     HAS_MAAS_LIB = True
 except ImportError:
     HAS_MAAS_LIB = False
-    
-# try:
-    # import timeout_decorator
-    # HAS_TIMEOUT = True
-# except ImportError:
-    # HAS_TIMEOUT = False
 
 import typing
+import time
 
 
 #### a handler class used to process the maas machine operations ####
 
-WAIT_TIME = {"time": 300}
 class MaasMachineHandler(object):
         
     RESULT_ERROR, RESULT_TIMEOUT, RESULT_COMPLETE, RESULT_ALLOC, RESULT_NO_MACHINE = \
     'error', 'timeout', 'complete', 'allocated', 'not enough machine'
+    
+    DEFAULT_WAIT_TIME = 600
+    DEFAULT_MAX_TRY = 5
     
     # a exception raised when timeout occurs
     class TimeoutException(Exception):
@@ -41,11 +39,13 @@ class MaasMachineHandler(object):
                 api_key: str, 
                 os: str=None,
                 wait: bool=True, 
-                wait_time: int=300, 
-                ensure: bool=True, 
+                wait_time: int=DEFAULT_WAIT_TIME, 
+                ensure: bool=True,
+                max_try: int=DEFAULT_MAX_TRY,
+                disk_erase: bool=False,
                 target_name: str=None,
                 tags_match: typing.Sequence[str]=None, 
-                zone_match: str='default', 
+                zone_match: str=None, 
                 name_match: str=None,  
                 log=None):
     
@@ -55,6 +55,8 @@ class MaasMachineHandler(object):
         self.wait = wait
         self.wait_time = wait_time
         self.ensure = ensure
+        self.max_try = max_try
+        self.disk_erase = disk_erase
         self.target_name = target_name
         self.tags_match = tags_match
         self.zone_match = zone_match
@@ -69,7 +71,7 @@ class MaasMachineHandler(object):
         self._result = dict(status=None, 
                             error_msg=None, 
                             machine=None)
-        # store the name of the machines needed to be released
+        # store the id of the machines needed to be released
         # when error, timeout or complete
         self._clean_machines = []
     
@@ -78,7 +80,7 @@ class MaasMachineHandler(object):
         return self._result
         
     # clear the current result
-    def _clear_result(self):
+    def clear_result(self):
         self._result['status'] = None
         self._result['error_msg'] = None
         self._result['machine'] = None
@@ -88,14 +90,19 @@ class MaasMachineHandler(object):
         return self._clean_machines
     
     # release the machines in the clean group
-    def release_clean_machines(self):
-        for machine in self._clean_machines:
+    def release_clean_machines(self, erase: bool=True):
+        for i in self._clean_machines:
             try:
-                machine.release()
+                machine = self.client.machines.get(i)
+                machine.release(erase=erase)                
+            except CallError as e:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when clean the machine \'{}\'".format(machine.hostname)
+                self._error_print(msg)
             except MAASException as e:
                 self._error_print("maas error \'{}\' occurs when clean the machine \'{}\'", e, machine.hostname)
-            except Exception:
+            except Exception as e:
                 self._error_print("error \'{}\' occurs when clean the machine \'{}\'", e, machine.hostname)
+        self._clean_machines = []
     
     # called when an error occurs
     def _handle_error(self, *args, error_msg='unknown error occurs', **kwargs):
@@ -133,6 +140,9 @@ class MaasMachineHandler(object):
     def api_connect(self):        
         try:
             self.client = maas_connect(self.maas_url, apikey=self.api_key)
+        except CallError as e:
+            msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when connect to the maas api server"
+            self._handle_error(error_msg=msg)
         except MAASException as e:
             msg = "maas error \'{}\' occurs when connect to the maas api server".format(e)
             self._handle_error(error_msg=msg)
@@ -159,6 +169,10 @@ class MaasMachineHandler(object):
                                  repr(m.tags), 
                                  m.zone.name)
                 self._handle_alloc(m, msg=msg)
+            except CallError as e:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
+                                    self.name_match, repr(self.tags_match), self.zone_match)
+                self._handle_error(error_msg=msg)
             except MAASException as e:
                 msg = "maas error \'{}\' occurs when allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
                                     e, self.name_match, repr(self.tags_match), self.zone_match)
@@ -175,18 +189,42 @@ class MaasMachineHandler(object):
     
     # a private func to deploy a machine according to the input params
     # deployment is called only when the current result's status is self.RESULT_ALLOC
-    @timeout_decorator.timeout(WAIT_TIME['time'], timeout_exception=self.TimeoutException)
     def _deploy_machine(self):
         if self._result['status'] == self.RESULT_ALLOC:
             try:
-                self._result['machine'].deploy(distro_series=self.os, 
-                                               wait=self.wait)
+                self._result['machine'].deploy(distro_series=self.os)
                 self._result['machine'].refresh()
+                if self.wait:
+                    wait_count = 0
+                    check_interval = 5
+                    while self._result['machine'].status == NodeStatus.DEPLOYING and \
+                          wait_count < self.wait_time:
+                        self._result['machine'].refresh()
+                        time.sleep(check_interval)
+                        wait_count = wait_count + check_interval
+                        self._info_print("wait for deploying machine with: \nname: {}, tags: {}, zone: {}, status: {} \ntime passed: {} seconds", 
+                                         self._result['machine'].hostname, 
+                                         repr(self._result['machine'].tags), 
+                                         self._result['machine'].zone.name, 
+                                         self._result['machine'].status_name, 
+                                         wait_count)
+                    if not self._result['machine'].status == NodeStatus.DEPLOYED:
+                        if wait_count >= self.wait_time:
+                            raise self.TimeoutException
+                        else:
+                            raise self.DeployFail
                 self._info_print("end the deployment of machine with: \nname: {}, tags: {}, zone: {}, status: {}", 
                                  self._result['machine'].hostname, 
                                  repr(self._result['machine'].tags), 
                                  self._result['machine'].zone.name, 
                                  self._result['machine'].status_name)
+            except CallError as e:
+                self._result['machine'].refresh()
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                                   self._result['machine'].hostname, 
+                                   repr(self._result['machine'].tags), 
+                                   self._result['machine'].zone.name,
+                                   self._result['machine'].status_name)
             except MAASException as e:
                 self._result['machine'].refresh()
                 msg = "maas error \'{}\' occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
@@ -196,16 +234,19 @@ class MaasMachineHandler(object):
                                    self._result['machine'].status_name)
                 self._handle_error(error_msg=msg)
             except self.TimeoutException:
-                if self._result['machine']:
-                    self._result['machine'].refresh()
-                    msg = "timeout occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
-                                      self._result['machine'].hostname, 
-                                      repr(self._result['machine'].tags), 
-                                      self._result['machine'].zone.name,
-                                      self._result['machine'].status_name)
-                else:
-                    msg = "a timeout occurs"
+                msg = "timeout occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                                  self._result['machine'].hostname, 
+                                  repr(self._result['machine'].tags), 
+                                  self._result['machine'].zone.name,
+                                  self._result['machine'].status_name)
                 self._handle_timeout(msg=msg)
+            except self.DeployFail:
+                msg = "Fail to deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                                   self._result['machine'].hostname, 
+                                   repr(self._result['machine'].tags), 
+                                   self._result['machine'].zone.name,
+                                   self._result['machine'].status_name)
+                self._handle_error(error_msg=msg)
             except Exception as e:
                 self._result['machine'].refresh()
                 msg = "error \'{}\' occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
@@ -220,8 +261,8 @@ class MaasMachineHandler(object):
     # added to the _clean_machines
     def _ensure_deploy_machine(self):
         try_count = 0
-        FLAGS = [self.RESULT_COMPLETE, self.RESULT_NO_MACHINE]
-        while self._result['status'] not in FLAGS:
+        flags = [self.RESULT_COMPLETE, self.RESULT_NO_MACHINE]
+        while self._result['status'] not in flags and try_count < self.max_try:
             try:
                 self._allocate_machine()
                 if self._result['status'] == self.RESULT_NO_MACHINE:
@@ -256,8 +297,11 @@ class MaasMachineHandler(object):
                                     e, self.name_match, repr(self.tags_match), self.zone_match, try_count)
                 self._info_print(msg)
                 if self._result['machine']:
-                    self._clean_machines.append(self._result['machine'])
-                self._clear_result()
+                    m_id = self._result['machine'].system_id
+                    if m_id not in self._clean_machines:
+                        self._clean_machines.append(m_id)
+                if try_count < self.max_try:
+                    self.clear_result()
     
     # a public func to deploy a machine according to the input params
     def deploy_machine(self):
@@ -276,11 +320,14 @@ class MaasMachineHandler(object):
     
     # a private func to release a machine specified by the name of the machine
     def _release_machine(self, name, zone):        
-        func = lambda m: m.release()
+        func = lambda m: m.release(erase=self.disk_erase)
         try:
             [func(m) for m in self.client.machines.list() \
                         if m.hostname == name and m.zone.name == zone]
             self._info_print("release the machine with a name of \'{}\' in zone of \'{}\'", name, zone)
+        except CallError as e:
+            msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when release the machine \'{}\' in zone \'{}\'".format(name, zone)
+            self._handle_error(error_msg=msg)
         except MAASException as e:
             msg = "maas error \'{}\' occurs when release the machine \'{}\' in zone \'{}\'".format(e, name, zone)
             self._handle_error(error_msg=msg)
@@ -303,14 +350,14 @@ class MaasMachineHandler(object):
     # a printer wrapper for normal messages
     def _info_print(self, m, *args, **kwargs):     
         if self.log:
-            self.log.info(m.format(*args) + '\n\n', **kwargs)
+            self.log.info(m.format(*args) + '\n', **kwargs)
         else:
-            print(m.format(*args, **kwargs) + '\n\n')
+            print(m.format(*args, **kwargs) + '\n')
 
     # a printer wrapper for error messages
     def _error_print(self, m, *args, **kwargs):
         if self.log:
-            self.log.error(m.format(*args) + '\n\n', **kwargs)
+            self.log.error(m.format(*args) + '\n', **kwargs)
         else:
-            print(m.format(*args, **kwargs) + '\n\n')
+            print(m.format(*args, **kwargs) + '\n')
  
