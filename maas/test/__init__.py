@@ -22,8 +22,17 @@ class MaasMachineHandler(object):
         
     # status definitions of the process result
     # RESULT_ERROR, RESULT_COMPLETE, RESULT_TIMEOUT and RESULT_NO_MACHINE are observable outside the class
+    #   RESULT_COMPLETE: 
+    #       when a machine is successfully deployed if wait=True or ensure=True
+    #       when a deploy is called without error if wait=False and ensure=False (no garantee to complete deploying)
+    #       when a release action is called (no garantee to complete release)
+    #   RESULT_TIMEOUT: 
+    #       when the last time of deploying timeout if wait=True or ensure=True (when wait=True and ensure=False, deploying is called only one time)
+    #   RESULT_NO_MACHINE: 
+    #       when no machine is available at the last time of allocating
+    #       this implies no concrete action is applied when ensure=False
     RESULT_ERROR, RESULT_TIMEOUT, RESULT_COMPLETE, RESULT_ALLOC, RESULT_NO_MACHINE = \
-    'error', 'timeout', 'complete', 'allocated', 'not enough machine'
+    'error', 'timeout', 'complete', 'allocated', 'no available machine'
     
     DEFAULT_WAIT_TIME = 600
     DEFAULT_MAX_TRY = 5
@@ -294,7 +303,7 @@ class MaasMachineHandler(object):
                     raise self.DeployFail("machine deployment fails")
                 
             except MachineNotFound:
-                msg = "not enough machine for allocating the machine with: \nname: {}, tags: {}, zone: {}".format( 
+                msg = "no available machine for allocating the machine with: \nname: {}, tags: {}, zone: {}".format( 
                                     self.name_match, repr(self.tags_match), self.zone_match)
                 self._handle_no_machine(msg=msg)
             except self.DeployFail as e:

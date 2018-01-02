@@ -201,7 +201,7 @@ def run_module():
         changed=False,
         host_name=None,
         host_id=None,
-        zone_id=None,
+        zone_name=None,
         status=None, 
         ip_addresses=[],
         clean_machines=[]
@@ -225,8 +225,17 @@ def run_module():
             
         # status definitions of the process result
         # RESULT_ERROR, RESULT_COMPLETE, RESULT_TIMEOUT and RESULT_NO_MACHINE are observable outside the class
+        #   RESULT_COMPLETE: 
+        #       when a machine is successfully deployed if wait=True or ensure=True
+        #       when a deploy is called without error if wait=False and ensure=False (no garantee to complete deploying)
+        #       when a release action is called (no garantee to complete release)
+        #   RESULT_TIMEOUT: 
+        #       when the last time of deploying timeout if wait=True or ensure=True (when wait=True and ensure=False, deploying is called only one time)
+        #   RESULT_NO_MACHINE: 
+        #       when no machine is available at the last time of allocating
+        #       this implies no concrete action is applied when ensure=False
         RESULT_ERROR, RESULT_TIMEOUT, RESULT_COMPLETE, RESULT_ALLOC, RESULT_NO_MACHINE = \
-        'error', 'timeout', 'complete', 'allocated', 'not enough machine'
+        'error', 'timeout', 'complete', 'allocated', 'no available machine'
         
         DEFAULT_WAIT_TIME = 600
         DEFAULT_MAX_TRY = 5
@@ -497,7 +506,7 @@ def run_module():
                         raise self.DeployFail("machine deployment fails")
                     
                 except MachineNotFound:
-                    msg = "not enough machine for allocating the machine with: \nname: {}, tags: {}, zone: {}".format( 
+                    msg = "no available machine for allocating machine for allocating the machine with: \nname: {}, tags: {}, zone: {}".format( 
                                         self.name_match, repr(self.tags_match), self.zone_match)
                     self._handle_no_machine(msg=msg)
                 except self.DeployFail as e:
@@ -624,32 +633,24 @@ def run_module():
     if module.params['state'] == 'present':
         maas_handler.deploy_machine()
         result['clean_machines'] = maas_handler.get_clean_machines()
-        if handler_result['status'] == MaasMachineHandler.RESULT_COMPLETE:
-            result['changed'] = True
-            if handler_result['machine']:
-                result['hostname']
-        if not handler_result['error_msg']:
-            module.fail_json(msg=handler_result['error_msg'], **result)
-
-    # manipulate or modify the state as needed (this is going to be the
-    # part where your module will do what it needs to do)
-    result['original_message'] = module.params['name']
-    result['message'] = 'goodbye'
-
-    # use whatever logic you need to determine whether or not this module
-    # made any modifications to your target
-    if module.params['new']:
         result['changed'] = True
-
-    # during the execution of the module, if there is an exception or a
-    # conditional state that effectively causes a failure, run
-    # AnsibleModule.fail_json() to pass in the message and the result
-    if module.params['name'] == 'fail me':
-        module.fail_json(msg='You requested this to fail', **result)
-
-    # in the event of a successful module execution, you will want to
-    # simple AnsibleModule.exit_json(), passing the key/value results
-    module.exit_json(**result)
+        if handler_result['status'] == MaasMachineHandler.RESULT_COMPLETE:
+            m, r = handler_result['machine'], result
+            r['host_name'], r['host_id'], r['zone_name'], r['status'], r['ip_addresses'] = \
+            m.hostname, m.system_id, m.zone.name, m.status_name, m.ip_addresses
+            module.exit_json(**result)                 
+        else:
+            if not (handler_result['machine'] or len(result['clean_machines'])):
+                result['changed'] = False
+            module.fail_json(msg=handler_result['error_msg'], **result)
+    else:
+        maas_handler.release_machine()
+        result['changed'] = True
+        if handler_result['status'] == MaasMachineHandler.RESULT_COMPLETE:
+            module.exit_json(**result)                 
+        else:
+            result['changed'] = False
+            module.fail_json(msg=handler_result['error_msg'], **result)
 
 def main():
     run_module()
