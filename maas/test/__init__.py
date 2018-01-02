@@ -20,11 +20,14 @@ import time
 
 class MaasMachineHandler(object):
         
+    # status definitions of the process result
+    # RESULT_ERROR, RESULT_COMPLETE, RESULT_TIMEOUT and RESULT_NO_MACHINE are observable outside the class
     RESULT_ERROR, RESULT_TIMEOUT, RESULT_COMPLETE, RESULT_ALLOC, RESULT_NO_MACHINE = \
     'error', 'timeout', 'complete', 'allocated', 'not enough machine'
     
     DEFAULT_WAIT_TIME = 600
     DEFAULT_MAX_TRY = 5
+    DEFAULT_WAIT_INTERVAL = 5
     
     # a exception raised when timeout occurs
     class TimeoutException(Exception):
@@ -39,14 +42,16 @@ class MaasMachineHandler(object):
                 api_key: str, 
                 os: str=None,
                 wait: bool=True, 
-                wait_time: int=DEFAULT_WAIT_TIME, 
+                wait_time: int=DEFAULT_WAIT_TIME,
+                wait_interval: int=DEFAULT_WAIT_INTERVAL,
                 ensure: bool=True,
                 max_try: int=DEFAULT_MAX_TRY,
                 disk_erase: bool=False,
                 target_name: str=None,
                 tags_match: typing.Sequence[str]=None, 
                 zone_match: str=None, 
-                name_match: str=None,  
+                name_match: str=None,
+                id_match: str=None,                
                 log=None):
     
         self.maas_url = maas_url
@@ -54,6 +59,7 @@ class MaasMachineHandler(object):
         self.os = os
         self.wait = wait
         self.wait_time = wait_time
+        self.wait_interval = wait_interval
         self.ensure = ensure
         self.max_try = max_try
         self.disk_erase = disk_erase
@@ -61,6 +67,7 @@ class MaasMachineHandler(object):
         self.tags_match = tags_match
         self.zone_match = zone_match
         self.name_match = name_match
+        self.id_match = id_match
         self.log = log
         
         # store the current result with a structure as
@@ -90,7 +97,7 @@ class MaasMachineHandler(object):
         return self._clean_machines
     
     # release the machines in the clean group
-    def release_clean_machines(self, erase: bool=True):
+    def release_clean_machines(self, erase: bool=False):
         for i in self._clean_machines:
             try:
                 machine = self.client.machines.get(i)
@@ -194,14 +201,13 @@ class MaasMachineHandler(object):
             try:
                 self._result['machine'].deploy(distro_series=self.os)
                 self._result['machine'].refresh()
-                if self.wait:
+                if self.wait or self.ensure:
                     wait_count = 0
-                    check_interval = 5
                     while self._result['machine'].status == NodeStatus.DEPLOYING and \
                           wait_count < self.wait_time:
                         self._result['machine'].refresh()
-                        time.sleep(check_interval)
-                        wait_count = wait_count + check_interval
+                        time.sleep(self.wait_interval)
+                        wait_count = wait_count + self.wait_interval
                         self._info_print("wait for deploying machine with: \nname: {}, tags: {}, zone: {}, status: {} \ntime passed: {} seconds", 
                                          self._result['machine'].hostname, 
                                          repr(self._result['machine'].tags), 
@@ -319,29 +325,62 @@ class MaasMachineHandler(object):
             self._ensure_deploy_machine()
     
     # a private func to release a machine specified by the name of the machine
-    def _release_machine(self, name, zone):        
+    def _release_machine(self, name, zone, id):        
+        m_found = False
         func = lambda m: m.release(erase=self.disk_erase)
         try:
-            [func(m) for m in self.client.machines.list() \
-                        if m.hostname == name and m.zone.name == zone]
-            self._info_print("release the machine with a name of \'{}\' in zone of \'{}\'", name, zone)
+            if id:
+                m = self.client.machines.get(system_id=id)
+                if m:
+                    m_found = True
+                    func(m)
+                    self._info_print("release the machine with a id of \'{}\' and a name of \'{}\' in zone of \'{}\'", id, m.hostname, m.zone.name)
+            elif zone:
+                for m in self.client.machines.list():
+                    if m.hostname == name and m.zone.name == zone:
+                        m_found = True
+                        func(m)
+                        self._info_print("release the machine with a name of \'{}\' in zone of \'{}\'", name, zone)
+            else:
+                for m in self.client.machines.list():
+                    if m.hostname == name:
+                        m_found = True
+                        func(m)
+                        self._info_print("release the machine with a name of \'{}\' in zone of \'{}\'", name, m.zone.name)
+            if not m_found:
+                    raise Exception("no such machine is found")
         except CallError as e:
-            msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when release the machine \'{}\' in zone \'{}\'".format(name, zone)
+            if id:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when release the machine with id \'{}\'".format(id)
+            elif zone:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when release the machine \'{}\' in zone \'{}\'".format(name, zone)
+            else:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when release the machine \'{}\'".format(name)
             self._handle_error(error_msg=msg)
         except MAASException as e:
-            msg = "maas error \'{}\' occurs when release the machine \'{}\' in zone \'{}\'".format(e, name, zone)
+            if id:
+                msg = "maas error \'{}\' occurs when release the machine with id \'{}\'".format(e, id)
+            elif zone:
+                msg = "maas error \'{}\' occurs when release the machine \'{}\' in zone \'{}\'".format(e, name, zone)
+            else:
+                msg = "maas error \'{}\' occurs when release the machine \'{}\'".format(e, name)
             self._handle_error(error_msg=msg)
         except Exception as e:
-            msg = "error \'{}\' occurs when release the machine \'{}\' in zone \'{}\'".format(e, name, zone)
+            if id:
+                msg = "error \'{}\' occurs when release the machine with id \'{}\'".format(e, id)
+            elif zone:
+                msg = "error \'{}\' occurs when release the machine \'{}\' in zone \'{}\'".format(e, name, zone)
+            else:
+                msg = "error \'{}\' occurs when release the machine \'{}\'".format(e, name)
             self._handle_error(error_msg=msg)
 
     # a public func to release a machine specified by the name of the machine
     def release_machine(self):        
-        if not self.name_match:
-            msg = "the name of the released machine must be specified"
+        if not (self.name_match or self.id_match):
+            msg = "error occurs due to that the name or the system id of the released machine must be specified"
             self._handle_error(error_msg=msg)
         else:
-            self._release_machine(self.name_match, self.zone_match)
+            self._release_machine(self.name_match, self.zone_match, self.id_match)
             if not self._result['status'] == self.RESULT_ERROR:
                 self._result['status'] = self.RESULT_COMPLETE
         
