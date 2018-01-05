@@ -167,6 +167,691 @@ from copy import deepcopy
 
 from ansible.module_utils.basic import AnsibleModule
 
+#### a handler class used to process the maas machine operations ####
+
+class MaasMachineHandler(object):
+        
+    # status definitions of the process result for single machine process
+    # RESULT_ERROR, RESULT_COMPLETE, RESULT_TIMEOUT and RESULT_NO_MACHINE are observable outside the class
+    #   RESULT_COMPLETE: 
+    #       when a machine is successfully deployed if wait=True or ensure=True
+    #       when a deploy is called without error if wait=False and ensure=False (no garantee to complete deployment)
+    #       when a release action is called (no garantee to complete release)
+    #   RESULT_TIMEOUT: 
+    #       when the last time of deploying timeout if wait=True or ensure=True (when wait=True and ensure=False, deploying is called only one time)
+    #   RESULT_NO_MACHINE: 
+    #       when no machine is available at the last time of allocating
+    #       this implies no concrete action is applied when ensure=False
+    #   RESULT_ERROR: 
+    #       Any result except above ones
+    RESULT_ERROR, RESULT_TIMEOUT, RESULT_COMPLETE, RESULT_ALLOC, RESULT_NO_MACHINE = \
+    'error', 'timeout', 'complete', 'allocated', 'no available machine'
+    
+    ######### for batch #########
+    # status definitions of the process result for batch machine process (only for the deployment)
+    # All status are observable outside the class
+    #   BATCH_RESULT_COMPLETE: 
+    #       all demanded machines are successfully deployed if wait=True or ensure=True
+    #       when deployings of all demanded machine are called without error if wait=False and ensure=False (no garantee to complete deployment)
+    #   RESULT_NO_MACHINE: 
+    #       when not enough machine for the demanded number are available at the last time of allocating
+    #       this implies no concrete action is applied when ensure=False
+    #   BATCH_RESULT_FAIL: 
+    #       Any result except above ones
+    BATCH_RESULT_FAIL, BATCH_RESULT_COMPLETE, BATCH_RESULT_NO_MACHINE = \
+    'batch deploy fail', 'batch deploy complete', 'not enough available machine for batch deploy'
+    
+    DEFAULT_WAIT_TIME = 600
+    DEFAULT_MAX_TRY = 5
+    DEFAULT_WAIT_INTERVAL = 5
+    
+    # a exception raised when timeout occurs
+    class TimeoutException(Exception):
+        pass
+    
+    # a exception raised when deploying fails in ensure deploy
+    class DeployFail(Exception):
+        pass
+    
+    def __init__(self, 
+                maas_url: str, 
+                api_key: str, 
+                os: str=None,
+                wait: bool=True, 
+                wait_time: int=DEFAULT_WAIT_TIME,
+                wait_interval: int=DEFAULT_WAIT_INTERVAL,
+                ensure: bool=True,
+                max_try: int=DEFAULT_MAX_TRY,
+                batch_deploy: int=0,  # for batch, the number of batch deploying, only the zone and the tags will be matched
+                disk_erase: bool=False,
+                target_name: str=None,
+                tags_match: typing.Sequence[str]=None, 
+                zone_match: str=None, 
+                name_match: str=None,
+                id_match: str=None,                    
+                log=None):
+    
+        self.maas_url = maas_url
+        self.api_key = api_key
+        self.os = os
+        self.wait = wait
+        self.wait_time = wait_time
+        self.wait_interval = wait_interval
+        self.ensure = ensure
+        self.max_try = max_try
+        self.batch_deploy = batch_deploy ###### for batch #######
+        self.disk_erase = disk_erase
+        self.target_name = target_name
+        self.tags_match = tags_match
+        self.zone_match = zone_match
+        self.name_match = name_match
+        self.id_match = id_match
+        self.log = log
+        
+        # store the current result with a structure as
+        # status: 
+        # error_msg:
+        # machine: an object of a machine        
+        self._result = dict(status=None, 
+                            error_msg=None, 
+                            machine=None)
+        
+        ######### for batch ############
+        # store the current result for batch deploying with a structure as
+        # status: 
+        # error_msg:
+        # machines: a dict of the invovled machines with the key as the machine's system id and value of the object of maas machine
+        self._batch_result = dict(status=None,
+                                  error_msg=None,
+                                  machines=dict())
+        
+        # store the id of the machines needed to be released
+        # when error, timeout or complete
+        self._clean_machines = []
+    
+    # get the current result
+    def get_result(self):
+        return self._result
+        
+    # clear the current result
+    def clear_result(self):
+        self._result['status'] = None
+        self._result['error_msg'] = None
+        self._result['machine'] = None
+        
+    ###### for batch #######
+    # get the current batch deploy result
+    def get_batch_result(self):
+        return self._batch_result
+        
+    # clear the current batch deploy result, only the status and the error message will be cleared
+    def clear_batch_result(self):
+        self._batch_result['status'] = None
+        self._batch_result['error_msg'] = None
+    
+    # get the current clean machines
+    def get_clean_machines(self):
+        return self._clean_machines
+    
+    # release the machines in the clean group
+    def release_clean_machines(self, erase: bool=False):
+        for i in self._clean_machines:
+            try:
+                machine = self.client.machines.get(i)
+                machine.release(erase=erase)                
+            except CallError as e:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when clean the machine \'{}\'".format(machine.hostname)
+                self._error_print(msg)
+            except MAASException as e:
+                self._error_print("maas error \'{}\' occurs when clean the machine \'{}\'", e, machine.hostname)
+            except Exception as e:
+                self._error_print("error \'{}\' occurs when clean the machine \'{}\'", e, machine.hostname)
+        self._clean_machines.clear()
+    
+    # called when an error occurs
+    def _handle_error(self, *args, error_msg='unknown error occurs', **kwargs):
+        self._error_print(error_msg, *args, **kwargs)
+        self._result['status'] = self.RESULT_ERROR
+        self._result['error_msg'] = error_msg
+        
+    def _add_machine_to_result(self, machine):
+        self._result['machine'] = machine
+    
+    # called when timeout occurs
+    def _handle_timeout(self, *args, msg='timeout occurs', **kwargs):
+        self._info_print(msg, *args, **kwargs)
+        self._result['status'] = self.RESULT_TIMEOUT
+        self._result['error_msg'] = msg
+        
+    # called when complete
+    def _handle_complete(self, *args, msg='process complete', **kwargs):
+        self._info_print(msg, *args, **kwargs)
+        self._result['status'] = self.RESULT_COMPLETE
+        
+    # called when machine is allocated
+    def _handle_alloc(self, machine, *args, msg='allocate complete', **kwargs):
+        self._info_print(msg, *args, **kwargs)
+        self._result['status'] = self.RESULT_ALLOC
+        self._add_machine_to_result(machine)
+        
+    # called when not enough machine to be allocated
+    def _handle_no_machine(self, *args, msg='not enough machine', **kwargs):
+        self._error_print(msg, *args, **kwargs)
+        self._result['status'] = self.RESULT_NO_MACHINE
+        self._result['error_msg'] = msg
+    
+    
+    ####### for batch #######
+    # called when a batch fail occurs
+    def _handle_batch_fail(self, *args, error_msg='unknown error occurs for batch deploy', **kwargs):
+        self._error_print(error_msg, *args, **kwargs)
+        self._batch_result['status'] = self.BATCH_RESULT_FAIL
+        self._batch_result['error_msg'] = error_msg
+        
+    # called when batch deploy complete
+    def _handle_batch_complete(self, *args, msg='batch deploy complete', **kwargs):
+        self._info_print(msg, *args, **kwargs)
+        self._batch_result['status'] = self.BATCH_RESULT_COMPLETE
+        
+    # called when not enough machine to be allocated for batch deploy
+    def _handle_batch_no_machine(self, *args, msg='not enough machine for batch deploy', **kwargs):
+        self._error_print(msg, *args, **kwargs)
+        self._batch_result['status'] = self.BATCH_RESULT_NO_MACHINE
+        self._batch_result['error_msg'] = msg
+    
+    # connect to the maas api server with the api key
+    def api_connect(self):        
+        try:
+            self.client = maas_connect(self.maas_url, apikey=self.api_key)
+        except CallError as e:
+            msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when connect to the maas api server"
+            if self.batch_deploy > 0:
+                self._handle_batch_fail(error_msg=msg)
+            else:
+                self._handle_error(error_msg=msg)
+        except MAASException as e:
+            msg = "maas error \'{}\' occurs when connect to the maas api server".format(e)
+            if self.batch_deploy > 0:
+                self._handle_batch_fail(error_msg=msg)
+            else:
+                self._handle_error(error_msg=msg)
+        except Exception as e:
+            msg = "error \'{}\' occurs when connect to the maas api server".format(e)
+            if self.batch_deploy > 0:
+                self._handle_batch_fail(error_msg=msg)
+            else:
+                self._handle_error(error_msg=msg)                                
+        else:
+            if not self.client.users.whoami().is_admin:
+                self._handle_error(error_msg="the current user is not an admin")
+            self._info_print("connected to the maas api server")
+
+    # a private func to allocate a machine according to the input params
+    # allocation is executed only when no error in current result
+    def _allocate_machine(self):
+        if not self._result['status'] == self.RESULT_ERROR:
+            try:
+                m = self.client.machines.allocate(hostname=self.name_match, 
+                                                tags=self.tags_match, 
+                                                zone=self.zone_match)
+                if not m.status == NodeStatus.ALLOCATED:
+                    raise Exception("fail to allocate machine")
+                msg="allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
+                                m.hostname, 
+                                repr(m.tags), 
+                                m.zone.name)
+                self._handle_alloc(m, msg=msg)
+            except CallError as e:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
+                                    self.name_match, repr(self.tags_match), self.zone_match)
+                self._handle_error(error_msg=msg)
+            except MAASException as e:
+                msg = "maas error \'{}\' occurs when allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
+                                    e, self.name_match, repr(self.tags_match), self.zone_match)
+                self._handle_error(error_msg=msg)
+            except MachineNotFound as e:
+                msg = "maas error \'{}\' occurs when allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
+                                    e, self.name_match, repr(self.tags_match), self.zone_match)
+                self._handle_no_machine(msg=msg)
+            except Exception as e:
+                msg = "error \'{}\' occurs when allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
+                                    e, self.name_match, repr(self.tags_match), self.zone_match)
+                self._handle_error(error_msg=msg)
+
+    
+    # a private func to deploy a machine according to the input params
+    # deployment is called only when the current result's status is self.RESULT_ALLOC
+    def _deploy_machine(self):
+        if self._result['status'] == self.RESULT_ALLOC:
+            try:
+                self._result['machine'].deploy(distro_series=self.os)
+                self._result['machine'].refresh()
+                if self.wait or self.ensure:
+                    wait_count = 0
+                    while self._result['machine'].status == NodeStatus.DEPLOYING and \
+                        wait_count < self.wait_time:
+                        self._result['machine'].refresh()
+                        self._info_print("wait for deploying machine with: \nname: {}, tags: {}, zone: {}, status: {} \ntime passed: {} seconds", 
+                                        self._result['machine'].hostname, 
+                                        repr(self._result['machine'].tags), 
+                                        self._result['machine'].zone.name, 
+                                        self._result['machine'].status_name, 
+                                        wait_count)
+                        time.sleep(self.wait_interval)
+                        wait_count = wait_count + self.wait_interval
+                    if not self._result['machine'].status == NodeStatus.DEPLOYED:
+                        if wait_count >= self.wait_time:
+                            raise self.TimeoutException
+                        else:
+                            raise self.DeployFail
+                self._info_print("end the deployment of machine with: \nname: {}, tags: {}, zone: {}, status: {}", 
+                                self._result['machine'].hostname, 
+                                repr(self._result['machine'].tags), 
+                                self._result['machine'].zone.name, 
+                                self._result['machine'].status_name)
+            except CallError as e:
+                self._result['machine'].refresh()
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                                self._result['machine'].hostname, 
+                                repr(self._result['machine'].tags), 
+                                self._result['machine'].zone.name,
+                                self._result['machine'].status_name)
+            except MAASException as e:
+                self._result['machine'].refresh()
+                msg = "maas error \'{}\' occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                                e, self._result['machine'].hostname, 
+                                repr(self._result['machine'].tags), 
+                                self._result['machine'].zone.name,
+                                self._result['machine'].status_name)
+                self._handle_error(error_msg=msg)
+            except self.TimeoutException:
+                msg = "timeout occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                                self._result['machine'].hostname, 
+                                repr(self._result['machine'].tags), 
+                                self._result['machine'].zone.name,
+                                self._result['machine'].status_name)
+                self._handle_timeout(msg=msg)
+            except self.DeployFail:
+                msg = "Fail to deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                                self._result['machine'].hostname, 
+                                repr(self._result['machine'].tags), 
+                                self._result['machine'].zone.name,
+                                self._result['machine'].status_name)
+                self._handle_error(error_msg=msg)
+            except Exception as e:
+                self._result['machine'].refresh()
+                msg = "error \'{}\' occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                                e, self._result['machine'].hostname, 
+                                repr(self._result['machine'].tags), 
+                                self._result['machine'].zone.name,
+                                self._result['machine'].status_name)
+                self._handle_error(error_msg=msg)                
+    
+    # called when ensure is true that repeats machine deployment until succeed
+    # machines that failed to be deployed or encounter the timeout will be
+    # added to the _clean_machines
+    def _ensure_deploy_machine(self):
+        try_count = 0
+        flags = [self.RESULT_COMPLETE, self.RESULT_NO_MACHINE]
+        while self._result['status'] not in flags and try_count < self.max_try:
+            try:
+                self._allocate_machine()
+                if self._result['status'] == self.RESULT_NO_MACHINE:
+                    raise MachineNotFound
+                if not self._result['status'] == self.RESULT_ALLOC:
+                    raise self.DeployFail("machine allocation fails")
+                    
+                self._deploy_machine()
+                if self._result['status'] == self.RESULT_TIMEOUT:
+                    raise self.DeployFail("machine deployment fails due to timeout")
+                if self._result['machine']:
+                    self._result['machine'].refresh()
+                    if self._result['machine'].status == NodeStatus.DEPLOYED:
+                        msg = "complete the process of deploying the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                            self._result['machine'].hostname, 
+                            repr(self._result['machine'].tags), 
+                            self._result['machine'].zone.name,
+                            self._result['machine'].status_name)
+                        self._handle_complete(msg=msg)
+                    else:
+                        raise self.DeployFail("machine deployment fails")
+                else:
+                    raise self.DeployFail("machine deployment fails")
+                
+            except MachineNotFound:
+                msg = "no available machine for allocating the machine with: \nname: {}, tags: {}, zone: {}".format( 
+                                    self.name_match, repr(self.tags_match), self.zone_match)
+                self._handle_no_machine(msg=msg)
+            except self.DeployFail as e:
+                try_count = try_count + 1
+                msg = "error \'{}\' occurs when tring to deploy the machine with: \nname: {}, tags: {}, zone: {} \ntry times: {}, try another one".format( 
+                                    e, self.name_match, repr(self.tags_match), self.zone_match, try_count)
+                self._info_print(msg)
+                if self._result['machine']:
+                    m_id = self._result['machine'].system_id
+                    if m_id not in self._clean_machines:
+                        self._clean_machines.append(m_id)
+                if try_count < self.max_try:
+                    self.clear_result()
+    
+    # a public func to deploy a machine according to the input params
+    def deploy_machine(self):
+        if not self.ensure:
+            self._allocate_machine()
+            self._deploy_machine()
+            if self._result['status'] == self.RESULT_ALLOC:
+                msg = "complete the process of deploying the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
+                            self._result['machine'].hostname, 
+                            repr(self._result['machine'].tags), 
+                            self._result['machine'].zone.name,
+                            self._result['machine'].status_name)
+                self._handle_complete(msg=msg)
+        else:
+            self._ensure_deploy_machine()
+    
+    ########## for batch ########
+    
+    # a private func to batch deploy machine without ensure
+    # note that if an allocation/deploy-calling failure occurs for any machine,
+    # the entire batch deploy will fail with an empty machines dict returned in the result
+    def _batch_deploy(self):
+        # allocate machines for batch deployment
+        for i in range(0, self.batch_deploy):
+            try:
+                m = self.client.machines.allocate(tags=self.tags_match, 
+                                                  zone=self.zone_match)
+                if not m.status == NodeStatus.ALLOCATED:
+                    if m.system_id not in self._clean_machines:
+                        self._clean_machines.append(m.system_id)
+                    raise Exception("allocationg of the machine with name: \'{}\' zone: \'{}\' id: \'{}\' failed for batch deploy".format(
+                                      m.hostname, m.zone.name, m.system_id))
+                self._batch_result['machines'][m.system_id] = m
+                self._info_print("allocate machine for batch deploy with: \nname: \'{}\' zone: \'{}\' id: \'{}\'", 
+                                 m.hostname, m.zone.name, m.system_id)
+            except CallError as e:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when allocate the machine for batch deploy with: \ntags: {}, zone: {}".format( 
+                                    repr(self.tags_match), self.zone_match)
+                self._handle_batch_fail(error_msg=msg)
+                break
+            except MAASException as e:
+                msg = "maas error \'{}\' occurs when allocate the machine for batch deploy with: \ntags: {}, zone: {}".format( 
+                                    e, repr(self.tags_match), self.zone_match)
+                self._handle_batch_fail(error_msg=msg)
+                break
+            except MachineNotFound as e:
+                msg = "maas error \'{}\' occurs when allocate the machine for batch deploy with: \ntags: {}, zone: {}".format( 
+                                    e, repr(self.tags_match), self.zone_match)
+                self._handle_batch_no_machine(msg=msg)
+                break
+            except Exception as e:
+                msg = "error \'{}\' occurs when allocate the machine for batch deploy with: \ntags: {}, zone: {}".format( 
+                                    e, repr(self.tags_match), self.zone_match)
+                self._handle_batch_fail(error_msg=msg)
+                break                                 
+        if len(self._batch_result['machines']) < self.batch_deploy:
+            [self._clean_machines.append(k) for k in self._batch_result['machines'].keys() \
+                                            if k not in self._clean_machines]
+            self._batch_result['machines'].clear()
+            return
+        
+        # deploy the allocated machines
+        deploy_fail_machine_id = None
+        for k, v in self._batch_result['machines'].items():
+            try:
+                v.deploy(distro_series=self.os)
+            except CallError as e:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when allocate the machine for batch deploy with: \ntags: {}, zone: {}".format( 
+                                    repr(self.tags_match), self.zone_match)
+                self._handle_batch_fail(error_msg=msg)
+                deploy_fail_machine_id = k
+                break
+            except MAASException as e:
+                msg = "maas error \'{}\' occurs when allocate the machine for batch deploy with: \ntags: {}, zone: {}".format( 
+                                    e, repr(self.tags_match), self.zone_match)
+                self._handle_batch_fail(error_msg=msg)
+                deploy_fail_machine_id = k
+                break
+            except Exception as e:
+                msg = "error \'{}\' occurs when allocate the machine for batch deploy with: \ntags: {}, zone: {}".format( 
+                                    e, repr(self.tags_match), self.zone_match)
+                self._handle_batch_fail(error_msg=msg)
+                deploy_fail_machine_id = k
+                break
+        if deploy_fail_machine_id:
+            [self._clean_machines.append(k) for k in self._batch_result['machines'].keys() \
+                                            if k not in self._clean_machines]
+            self._batch_result['machines'].clear()
+            return
+        
+        # repeatly check all the machines' status if wait=true
+        if self.wait:
+            wait_count = 0
+            fail_flag = False
+            complete_flag = False
+            while (not fail_flag) and \
+                  (not complete_flag) and \
+                  (wait_count < self.wait_time):
+                self._info_print("wait for deploying machines for batch deploy with: tags: {}, zone: {} \ndeploying: {} \ntime passed: {} seconds",  
+                                        repr(self.tags_match), self.zone_match, repr(self._batch_result['machines']), wait_count)
+                complete_flag = True
+                for k, v in self._batch_result['machines'].items():
+                    try:
+                        v.refresh()
+                        if v.status == NodeStatus.DEPLOYED:
+                            pass
+                        elif v.status == NodeStatus.DEPLOYING:
+                            complete_flag = False
+                        else:
+                            raise Exception("deploying of the machine with name: \'{}\' zone: \'{}\' id: \'{}\' failed for batch deploy".format(
+                                      v.hostname, v.zone.name, v.system_id))
+                    except CallError as e:
+                        msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when deploy the machine for batch deploy with: \ntags: {}, zone: {}".format( 
+                                            repr(self.tags_match), self.zone_match)
+                        self._handle_batch_fail(error_msg=msg)
+                        fail_flag = True
+                        break
+                    except MAASException as e:
+                        msg = "maas error \'{}\' occurs when deploy the machine for batch deploy with: \ntags: {}, zone: {}".format( 
+                                            e, repr(self.tags_match), self.zone_match)
+                        self._handle_batch_fail(error_msg=msg)
+                        fail_flag = True
+                        break
+                    except Exception as e:
+                        msg = "error \'{}\' occurs when deploy the machine for batch deploy with: \ntags: {}, zone: {}".format( 
+                                            e, repr(self.tags_match), self.zone_match)
+                        self._handle_batch_fail(error_msg=msg)
+                        fail_flag = True
+                        break
+                time.sleep(self.wait_interval)
+                wait_count = wait_count + self.wait_interval
+            if complete_flag:
+                msg = "complete deploying machines for batch deploy with: tags: {}, zone: {}".format(  
+                                        repr(self.tags_match), self.zone_match)
+                self._handle_batch_complete(msg=msg)
+                return
+            if wait_count >= self.wait_time:
+                msg = "timeout occurs when deploying machines for batch deploy with: tags: {}, zone: {}".format(  
+                                        repr(self.tags_match), self.zone_match)
+                self._handle_batch_fail(error_msg=msg)
+            [self._clean_machines.append(k) for k in self._batch_result['machines'].keys() \
+                                            if k not in self._clean_machines]
+            self._batch_result['machines'].clear()
+            return
+        
+        msg = "end deploying machines for batch deploy with: tags: {}, zone: {}".format( 
+                                        repr(self.tags_match), self.zone_match)
+        self._handle_batch_complete(msg=msg)
+    
+    
+    # a private func to batch deploy machine with ensure
+    # this process fails only when there is no available machines for deploying any more
+    # or the maximal time allowed to try is reached
+    # and if fails, not a single machine will be returned
+    def _ensure_batch_deploy(self):
+        on_process = dict() # item in on_process: 'system_id': {'count': x, 'machine': machine object}
+        stop_flag = False
+        to_result, kick_off = [], []
+        try_allow = self.batch_deploy + self.max_try
+        while not stop_flag:
+            self._info_print("wait for deploying machines for batch deploy with: tags: {}, zone: {} \non process: {} \ndeployed: {}",  
+                                        repr(self.tags_match), self.zone_match, repr(on_process), repr(list(self._batch_result['machines'].keys())))
+            gap_number = self.batch_deploy - len(self._batch_result['machines']) - len(on_process)
+            try_allow = try_allow - gap_number
+            if try_allow < 0:
+                [self._clean_machines.append(k) for k in on_process.keys() \
+                                                if k not in self._clean_machines]
+                [self._clean_machines.append(k) for k in self._batch_result['machines'].keys() \
+                                                if k not in self._clean_machines]
+                on_process.clear()
+                self._batch_result['machines'].clear()
+                msg = "maximal trying time is reached when deploy machines for batch deploy with: \ntags: {}, zone: {}".format( 
+                                        repr(self.tags_match), self.zone_match)
+                self._handle_batch_fail(error_msg=msg)
+                break
+            for i in range(0, gap_number):
+                a_m = None
+                # try to deploy a machine
+                try:
+                    a_m = self.client.machines.allocate(tags=self.tags_match, 
+                                                      zone=self.zone_match)
+                    if not a_m.status == NodeStatus.ALLOCATED:
+                        raise Exception
+                    a_m.deploy(distro_series=self.os)
+                    on_process.setdefault(a_m.system_id, dict(count=self.wait_time, machine=a_m))
+                except MachineNotFound as e:
+                    msg = "maas error \'{}\' occurs when allocate the machine for batch deploy with: \ntags: {}, zone: {}".format( 
+                                        e, repr(self.tags_match), self.zone_match)
+                    self._handle_batch_no_machine(msg=msg)
+                    [self._clean_machines.append(k) for k in on_process.keys() \
+                                                    if k not in self._clean_machines]
+                    [self._clean_machines.append(k) for k in self._batch_result['machines'].keys() \
+                                                    if k not in self._clean_machines]
+                    self._batch_result['machines'].clear()
+                    stop_flag = True
+                    break
+                except Exception:
+                    if a_m and (a_m.system_id not in self._clean_machines):
+                        self._clean_machines.append(a_m.system_id)
+                
+            # check the status of the machines on processing
+            for k, v in on_process.items():
+                try:
+                    m = v['machine']
+                    m.refresh()
+                    v['count'] = v['count'] - self.wait_interval
+                    if m.status == NodeStatus.DEPLOYED:
+                        to_result.append(k)
+                    elif (not m.status == NodeStatus.DEPLOYING) or \
+                         (v['count'] <= 0):
+                        kick_off.append(k)
+                    else:
+                        pass
+                except Exception:
+                    kick_off.append(k)
+                    
+            # check whether continue the loop
+            for k in to_result:
+                m = on_process.pop(k)['machine']
+                self._batch_result['machines'].setdefault(k, m)
+            for k in kick_off:
+                on_process.pop(k)
+                if k not in self._clean_machines:
+                    self._clean_machines.append(k)
+            to_result.clear()
+            kick_off.clear()
+            if self.batch_deploy == len(self._batch_result['machines']):
+                msg = "complete deploying machines for batch deploy with: tags: {}, zone: {} \non process: {} \ndeployed: {}".format(  
+                                        repr(self.tags_match), self.zone_match, repr(list(on_process.keys())), repr(list(self._batch_result['machines'].keys())))
+                self._handle_batch_complete(msg=msg)
+                stop_flag = True
+            time.sleep(self.wait_interval)
+                
+    # a public func to batch deploy machines
+    def batch_deploy_machines(self):
+        if self.ensure:
+            self._ensure_batch_deploy()
+        else:
+            self._batch_deploy()
+    
+    
+    # a private func to release a machine specified by the name of the machine
+    def _release_machine(self, name, zone, id):        
+        m_found = False
+        func = lambda m: m.release(erase=self.disk_erase)
+        try:
+            if id:
+                m = self.client.machines.get(system_id=id)
+                if m:
+                    m_found = True
+                    func(m)
+                    self._info_print("release the machine with a id of \'{}\' and a name of \'{}\' in zone of \'{}\'", id, m.hostname, m.zone.name)
+            elif zone:
+                for m in self.client.machines.list():
+                    if m.hostname == name and m.zone.name == zone:
+                        m_found = True
+                        func(m)
+                        self._info_print("release the machine with a name of \'{}\' in zone of \'{}\'", name, zone)
+            else:
+                for m in self.client.machines.list():
+                    if m.hostname == name:
+                        m_found = True
+                        func(m)
+                        self._info_print("release the machine with a name of \'{}\' in zone of \'{}\'", name, m.zone.name)
+            if not m_found:
+                    raise Exception("no such machine is found")
+        except CallError as e:
+            if id:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when release the machine with id \'{}\'".format(id)
+            elif zone:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when release the machine \'{}\' in zone \'{}\'".format(name, zone)
+            else:
+                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when release the machine \'{}\'".format(name)
+            self._handle_error(error_msg=msg)
+        except MAASException as e:
+            if id:
+                msg = "maas error \'{}\' occurs when release the machine with id \'{}\'".format(e, id)
+            elif zone:
+                msg = "maas error \'{}\' occurs when release the machine \'{}\' in zone \'{}\'".format(e, name, zone)
+            else:
+                msg = "maas error \'{}\' occurs when release the machine \'{}\'".format(e, name)
+            self._handle_error(error_msg=msg)
+        except Exception as e:
+            if id:
+                msg = "error \'{}\' occurs when release the machine with id \'{}\'".format(e, id)
+            elif zone:
+                msg = "error \'{}\' occurs when release the machine \'{}\' in zone \'{}\'".format(e, name, zone)
+            else:
+                msg = "error \'{}\' occurs when release the machine \'{}\'".format(e, name)
+            self._handle_error(error_msg=msg)
+
+    # a public func to release a machine specified by the name of the machine
+    def release_machine(self):        
+        if not (self.name_match or self.id_match):
+            msg = "error occurs due to that the name or the system id of the released machine must be specified"
+            self._handle_error(error_msg=msg)
+        else:
+            self._release_machine(self.name_match, self.zone_match, self.id_match)
+            if not self._result['status'] == self.RESULT_ERROR:
+                self._result['status'] = self.RESULT_COMPLETE
+        
+        
+        
+    # a printer wrapper for normal messages
+    def _info_print(self, m, *args, **kwargs):     
+        if self.log:
+            self.log.info(m.format(*args) + '\n', **kwargs)
+        else:
+            print(m.format(*args, **kwargs) + '\n')
+
+    # a printer wrapper for error messages
+    def _error_print(self, m, *args, **kwargs):
+        if self.log:
+            self.log.error(m.format(*args) + '\n', **kwargs)
+        else:
+            print(m.format(*args, **kwargs) + '\n')
+
+#### a handler class used to process the maas machine operations ####
+
 WAIT_TIME = 1200
 WAIT_INTERVAL = 5
 MAX_TRY = 5
@@ -184,7 +869,7 @@ def run_module():
         wait_interval=dict(type='int', default=WAIT_INTERVAL),
         ensure=dict(type='bool', default=True),
         max_try=dict(type='int', default=MAX_TRY),
-        disk_erase=dict(type='bool', default=True),
+        disk_erase=dict(type='bool', default=False),
         target_name=dict(type='str', default=None),         
         tags_match=dict(type='list', default=None), 
         zone_match=dict(type='str', default=None), 
@@ -218,409 +903,15 @@ def run_module():
     
     if not HAS_MAAS_LIB:
         module.fail_json(msg='python_libmaas is required for this module')
-
-    #### a handler class used to process the maas machine operations ####
-
-    class MaasMachineHandler(object):
-            
-        # status definitions of the process result
-        # RESULT_ERROR, RESULT_COMPLETE, RESULT_TIMEOUT and RESULT_NO_MACHINE are observable outside the class
-        #   RESULT_COMPLETE: 
-        #       when a machine is successfully deployed if wait=True or ensure=True
-        #       when a deploy is called without error if wait=False and ensure=False (no garantee to complete deploying)
-        #       when a release action is called (no garantee to complete release)
-        #   RESULT_TIMEOUT: 
-        #       when the last time of deploying timeout if wait=True or ensure=True (when wait=True and ensure=False, deploying is called only one time)
-        #   RESULT_NO_MACHINE: 
-        #       when no machine is available at the last time of allocating
-        #       this implies no concrete action is applied when ensure=False
-        RESULT_ERROR, RESULT_TIMEOUT, RESULT_COMPLETE, RESULT_ALLOC, RESULT_NO_MACHINE = \
-        'error', 'timeout', 'complete', 'allocated', 'no available machine'
         
-        DEFAULT_WAIT_TIME = 600
-        DEFAULT_MAX_TRY = 5
-        DEFAULT_WAIT_INTERVAL = 5
-        
-        # a exception raised when timeout occurs
-        class TimeoutException(Exception):
-            pass
-        
-        # a exception raised when deploying fails in ensure deploy
-        class DeployFail(Exception):
-            pass
-        
-        def __init__(self, 
-                    maas_url: str, 
-                    api_key: str, 
-                    os: str=None,
-                    wait: bool=True, 
-                    wait_time: int=DEFAULT_WAIT_TIME,
-                    wait_interval: int=DEFAULT_WAIT_INTERVAL,
-                    ensure: bool=True,
-                    max_try: int=DEFAULT_MAX_TRY,
-                    disk_erase: bool=False,
-                    target_name: str=None,
-                    tags_match: typing.Sequence[str]=None, 
-                    zone_match: str=None, 
-                    name_match: str=None,
-                    id_match: str=None,                    
-                    log=None):
-        
-            self.maas_url = maas_url
-            self.api_key = api_key
-            self.os = os
-            self.wait = wait
-            self.wait_time = wait_time
-            self.wait_interval = wait_interval
-            self.ensure = ensure
-            self.max_try = max_try
-            self.disk_erase = disk_erase
-            self.target_name = target_name
-            self.tags_match = tags_match
-            self.zone_match = zone_match
-            self.name_match = name_match
-            self.id_match = id_match
-            self.log = log
-            
-            # store the current result with a structure as
-            # status: 'error', 'timeout', 'complete', 'allocated'
-            # error_msg:
-            # machine: an object of a machine
-            
-            self._result = dict(status=None, 
-                                error_msg=None, 
-                                machine=None)
-            # store the id of the machines needed to be released
-            # when error, timeout or complete
-            self._clean_machines = []
-        
-        # get the current result
-        def get_result(self):
-            return self._result
-            
-        # clear the current result
-        def clear_result(self):
-            self._result['status'] = None
-            self._result['error_msg'] = None
-            self._result['machine'] = None
-        
-        # get the current result
-        def get_clean_machines(self):
-            return self._clean_machines
-        
-        # release the machines in the clean group
-        def release_clean_machines(self, erase: bool=False):
-            for i in self._clean_machines:
-                try:
-                    machine = self.client.machines.get(i)
-                    machine.release(erase=erase)                
-                except CallError as e:
-                    msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when clean the machine \'{}\'".format(machine.hostname)
-                    self._error_print(msg)
-                except MAASException as e:
-                    self._error_print("maas error \'{}\' occurs when clean the machine \'{}\'", e, machine.hostname)
-                except Exception as e:
-                    self._error_print("error \'{}\' occurs when clean the machine \'{}\'", e, machine.hostname)
-            self._clean_machines = []
-        
-        # called when an error occurs
-        def _handle_error(self, *args, error_msg='unknown error occurs', **kwargs):
-            self._error_print(error_msg, *args, **kwargs)
-            self._result['status'] = self.RESULT_ERROR
-            self._result['error_msg'] = error_msg
-            
-        def _add_machine_to_result(self, machine):
-            self._result['machine'] = machine
-        
-        # called when timeout occurs
-        def _handle_timeout(self, *args, msg='timeout occurs', **kwargs):
-            self._info_print(msg, *args, **kwargs)
-            self._result['status'] = self.RESULT_TIMEOUT
-            self._result['error_msg'] = msg
-            
-        # called when complete
-        def _handle_complete(self, *args, msg='process complete', **kwargs):
-            self._info_print(msg, *args, **kwargs)
-            self._result['status'] = self.RESULT_COMPLETE
-            
-        # called when machine is allocated
-        def _handle_alloc(self, machine, *args, msg='allocate complete', **kwargs):
-            self._info_print(msg, *args, **kwargs)
-            self._result['status'] = self.RESULT_ALLOC
-            self._add_machine_to_result(machine)
-            
-        # called when not enough machine to be allocated
-        def _handle_no_machine(self, *args, msg='not enough machine', **kwargs):
-            self._error_print(msg, *args, **kwargs)
-            self._result['status'] = self.RESULT_NO_MACHINE
-            self._result['error_msg'] = msg
-        
-        # connect to the maas api server with the api key
-        def api_connect(self):        
-            try:
-                self.client = maas_connect(self.maas_url, apikey=self.api_key)
-            except CallError as e:
-                msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when connect to the maas api server"
-                self._handle_error(error_msg=msg)
-            except MAASException as e:
-                msg = "maas error \'{}\' occurs when connect to the maas api server".format(e)
-                self._handle_error(error_msg=msg)
-            except Exception as e:
-                msg = "error \'{}\' occurs when connect to the maas api server".format(e)
-                self._handle_error(error_msg=msg)                                
-            else:
-                if not self.client.users.whoami().is_admin:
-                    self._handle_error(error_msg="the current user is not an admin")
-                self._info_print("connected to the maas api server")
-    
-        # a private func to allocate a machine according to the input params
-        # allocation is executed only when no error in current result
-        def _allocate_machine(self):
-            if not self._result['status'] == self.RESULT_ERROR:
-                try:
-                    m = self.client.machines.allocate(hostname=self.name_match, 
-                                                    tags=self.tags_match, 
-                                                    zone=self.zone_match)
-                    if not m.status == NodeStatus.ALLOCATED:
-                        raise Exception("fail to allocate machine")
-                    msg="allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
-                                    m.hostname, 
-                                    repr(m.tags), 
-                                    m.zone.name)
-                    self._handle_alloc(m, msg=msg)
-                except CallError as e:
-                    msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
-                                        self.name_match, repr(self.tags_match), self.zone_match)
-                    self._handle_error(error_msg=msg)
-                except MAASException as e:
-                    msg = "maas error \'{}\' occurs when allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
-                                        e, self.name_match, repr(self.tags_match), self.zone_match)
-                    self._handle_error(error_msg=msg)
-                except MachineNotFound as e:
-                    msg = "maas error \'{}\' occurs when allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
-                                        e, self.name_match, repr(self.tags_match), self.zone_match)
-                    self._handle_no_machine(msg=msg)
-                except Exception as e:
-                    msg = "error \'{}\' occurs when allocate the machine with: \nname: {}, tags: {}, zone: {}".format( 
-                                        e, self.name_match, repr(self.tags_match), self.zone_match)
-                    self._handle_error(error_msg=msg)
-    
-        
-        # a private func to deploy a machine according to the input params
-        # deployment is called only when the current result's status is self.RESULT_ALLOC
-        def _deploy_machine(self):
-            if self._result['status'] == self.RESULT_ALLOC:
-                try:
-                    self._result['machine'].deploy(distro_series=self.os)
-                    self._result['machine'].refresh()
-                    if self.wait or self.ensure:
-                        wait_count = 0
-                        while self._result['machine'].status == NodeStatus.DEPLOYING and \
-                            wait_count < self.wait_time:
-                            self._result['machine'].refresh()
-                            time.sleep(self.wait_interval)
-                            wait_count = wait_count + self.wait_interval
-                            self._info_print("wait for deploying machine with: \nname: {}, tags: {}, zone: {}, status: {} \ntime passed: {} seconds", 
-                                            self._result['machine'].hostname, 
-                                            repr(self._result['machine'].tags), 
-                                            self._result['machine'].zone.name, 
-                                            self._result['machine'].status_name, 
-                                            wait_count)
-                        if not self._result['machine'].status == NodeStatus.DEPLOYED:
-                            if wait_count >= self.wait_time:
-                                raise self.TimeoutException
-                            else:
-                                raise self.DeployFail
-                    self._info_print("end the deployment of machine with: \nname: {}, tags: {}, zone: {}, status: {}", 
-                                    self._result['machine'].hostname, 
-                                    repr(self._result['machine'].tags), 
-                                    self._result['machine'].zone.name, 
-                                    self._result['machine'].status_name)
-                except CallError as e:
-                    self._result['machine'].refresh()
-                    msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
-                                    self._result['machine'].hostname, 
-                                    repr(self._result['machine'].tags), 
-                                    self._result['machine'].zone.name,
-                                    self._result['machine'].status_name)
-                except MAASException as e:
-                    self._result['machine'].refresh()
-                    msg = "maas error \'{}\' occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
-                                    e, self._result['machine'].hostname, 
-                                    repr(self._result['machine'].tags), 
-                                    self._result['machine'].zone.name,
-                                    self._result['machine'].status_name)
-                    self._handle_error(error_msg=msg)
-                except self.TimeoutException:
-                    msg = "timeout occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
-                                    self._result['machine'].hostname, 
-                                    repr(self._result['machine'].tags), 
-                                    self._result['machine'].zone.name,
-                                    self._result['machine'].status_name)
-                    self._handle_timeout(msg=msg)
-                except self.DeployFail:
-                    msg = "Fail to deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
-                                    self._result['machine'].hostname, 
-                                    repr(self._result['machine'].tags), 
-                                    self._result['machine'].zone.name,
-                                    self._result['machine'].status_name)
-                    self._handle_error(error_msg=msg)
-                except Exception as e:
-                    self._result['machine'].refresh()
-                    msg = "error \'{}\' occurs when deploy the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
-                                    e, self._result['machine'].hostname, 
-                                    repr(self._result['machine'].tags), 
-                                    self._result['machine'].zone.name,
-                                    self._result['machine'].status_name)
-                    self._handle_error(error_msg=msg)                
-        
-        # called when ensure is true that repeats machine deployment until succeed
-        # machines that failed to be deployed or encounter the timeout will be
-        # added to the _clean_machines
-        def _ensure_deploy_machine(self):
-            try_count = 0
-            flags = [self.RESULT_COMPLETE, self.RESULT_NO_MACHINE]
-            while self._result['status'] not in flags and try_count < self.max_try:
-                try:
-                    self._allocate_machine()
-                    if self._result['status'] == self.RESULT_NO_MACHINE:
-                        raise MachineNotFound
-                    if not self._result['status'] == self.RESULT_ALLOC:
-                        raise self.DeployFail("machine allocation fails")
-                        
-                    self._deploy_machine()
-                    if self._result['status'] == self.RESULT_TIMEOUT:
-                        raise self.DeployFail("machine deployment fails due to timeout")
-                    if self._result['machine']:
-                        self._result['machine'].refresh()
-                        if self._result['machine'].status == NodeStatus.DEPLOYED:
-                            msg = "complete the process of deploying the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
-                                self._result['machine'].hostname, 
-                                repr(self._result['machine'].tags), 
-                                self._result['machine'].zone.name,
-                                self._result['machine'].status_name)
-                            self._handle_complete(msg=msg)
-                        else:
-                            raise self.DeployFail("machine deployment fails")
-                    else:
-                        raise self.DeployFail("machine deployment fails")
-                    
-                except MachineNotFound:
-                    msg = "no available machine for allocating machine for allocating the machine with: \nname: {}, tags: {}, zone: {}".format( 
-                                        self.name_match, repr(self.tags_match), self.zone_match)
-                    self._handle_no_machine(msg=msg)
-                except self.DeployFail as e:
-                    try_count = try_count + 1
-                    msg = "error \'{}\' occurs when tring to deploy the machine with: \nname: {}, tags: {}, zone: {} \ntry times: {}, try another one".format( 
-                                        e, self.name_match, repr(self.tags_match), self.zone_match, try_count)
-                    self._info_print(msg)
-                    if self._result['machine']:
-                        m_id = self._result['machine'].system_id
-                        if m_id not in self._clean_machines:
-                            self._clean_machines.append(m_id)
-                    if try_count < self.max_try:
-                        self.clear_result()
-        
-        # a public func to deploy a machine according to the input params
-        def deploy_machine(self):
-            if not self.ensure:
-                self._allocate_machine()
-                self._deploy_machine()
-                if self._result['status'] == self.RESULT_ALLOC:
-                    msg = "complete the process of deploying the machine with: \nname: {}, tags: {}, zone: {}, status: {}".format( 
-                                self._result['machine'].hostname, 
-                                repr(self._result['machine'].tags), 
-                                self._result['machine'].zone.name,
-                                self._result['machine'].status_name)
-                    self._handle_complete(msg=msg)
-            else:
-                self._ensure_deploy_machine()
-        
-        # a private func to release a machine specified by the name of the machine
-        def _release_machine(self, name, zone, id):        
-            m_found = False
-            func = lambda m: m.release(erase=self.disk_erase)
-            try:
-                if id:
-                    m = self.client.machines.get(system_id=id)
-                    if m:
-                        m_found = True
-                        func(m)
-                        self._info_print("release the machine with a id of \'{}\' and a name of \'{}\' in zone of \'{}\'", id, m.hostname, m.zone.name)
-                elif zone:
-                    for m in self.client.machines.list():
-                        if m.hostname == name and m.zone.name == zone:
-                            m_found = True
-                            func(m)
-                            self._info_print("release the machine with a name of \'{}\' in zone of \'{}\'", name, zone)
-                else:
-                    for m in self.client.machines.list():
-                        if m.hostname == name:
-                            m_found = True
-                            func(m)
-                            self._info_print("release the machine with a name of \'{}\' in zone of \'{}\'", name, m.zone.name)
-                if not m_found:
-                        raise Exception("no such machine is found")
-            except CallError as e:
-                if id:
-                    msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when release the machine with id \'{}\'".format(id)
-                elif zone:
-                    msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when release the machine \'{}\' in zone \'{}\'".format(name, zone)
-                else:
-                    msg = "maas call error \'" + str(e).replace('{', '{{').replace('}', '}}') + "\' occurs when release the machine \'{}\'".format(name)
-                self._handle_error(error_msg=msg)
-            except MAASException as e:
-                if id:
-                    msg = "maas error \'{}\' occurs when release the machine with id \'{}\'".format(e, id)
-                elif zone:
-                    msg = "maas error \'{}\' occurs when release the machine \'{}\' in zone \'{}\'".format(e, name, zone)
-                else:
-                    msg = "maas error \'{}\' occurs when release the machine \'{}\'".format(e, name)
-                self._handle_error(error_msg=msg)
-            except Exception as e:
-                if id:
-                    msg = "error \'{}\' occurs when release the machine with id \'{}\'".format(e, id)
-                elif zone:
-                    msg = "error \'{}\' occurs when release the machine \'{}\' in zone \'{}\'".format(e, name, zone)
-                else:
-                    msg = "error \'{}\' occurs when release the machine \'{}\'".format(e, name)
-                self._handle_error(error_msg=msg)
-    
-        # a public func to release a machine specified by the name of the machine
-        def release_machine(self):        
-            if not (self.name_match or self.id_match):
-                msg = "error occurs due to that the name or the system id of the released machine must be specified"
-                self._handle_error(error_msg=msg)
-            else:
-                self._release_machine(self.name_match, self.zone_match, self.id_match)
-                if not self._result['status'] == self.RESULT_ERROR:
-                    self._result['status'] = self.RESULT_COMPLETE
-            
-            
-            
-        # a printer wrapper for normal messages
-        def _info_print(self, m, *args, **kwargs):     
-            if self.log:
-                self.log.info(m.format(*args) + '\n', **kwargs)
-            else:
-                print(m.format(*args, **kwargs) + '\n')
-    
-        # a printer wrapper for error messages
-        def _error_print(self, m, *args, **kwargs):
-            if self.log:
-                self.log.error(m.format(*args) + '\n', **kwargs)
-            else:
-                print(m.format(*args, **kwargs) + '\n')
- 
-    #### a handler class used to process the maas machine operations ####
 
     handler_args = deepcopy(module.params)
     handler_args.pop('state')
-    maas_handler = MaasMchineHandler(**handler_args)
+    maas_handler = MaasMachineHandler(**handler_args)
     handler_result = maas_handler.get_result()
     
     maas_handler.api_connect()   
-    if handler_result['error_msg']
+    if handler_result['error_msg']:
         module.fail_json(msg=handler_result['error_msg'], **result)
         
     # if the user is working with this module in only check mode we do not
@@ -638,7 +929,7 @@ def run_module():
             m, r = handler_result['machine'], result
             r['host_name'], r['host_id'], r['zone_name'], r['status'], r['ip_addresses'] = \
             m.hostname, m.system_id, m.zone.name, m.status_name, m.ip_addresses
-            module.exit_json(**result)                 
+            module.exit_json(msg='a machine is deployed', **result)                 
         else:
             if not (handler_result['machine'] or len(result['clean_machines'])):
                 result['changed'] = False
@@ -647,7 +938,7 @@ def run_module():
         maas_handler.release_machine()
         result['changed'] = True
         if handler_result['status'] == MaasMachineHandler.RESULT_COMPLETE:
-            module.exit_json(**result)                 
+            module.exit_json(msg='release the machine', **result)                 
         else:
             result['changed'] = False
             module.fail_json(msg=handler_result['error_msg'], **result)

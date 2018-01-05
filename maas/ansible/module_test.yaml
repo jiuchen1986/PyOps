@@ -1,0 +1,58 @@
+- name: test maas machine module
+  connection: local
+  hosts: localhost
+  vars:
+    deploy_number: 3
+  tasks:
+  - name: run the maas machine module
+    maas_machine:
+      maas_url: 'http://maas.adp.gic.ericsson.se/MAAS/'
+      api_key: 'EP2QFqr9RhYBHEpvgd:WfwgyKek6xhYHXRQBn:K6ftkVYLnMLaesm2phgtqnEjtDULKjkW'
+      state: present
+      tags_match:
+      - 'REMOTE-MGMT'
+      # id_match: hrg7fy
+    async: 700
+    poll: 0
+    with_sequence: start=1 end={{ deploy_number }}
+    register: deploy_results
+
+  # - name: check the async results
+    # async_status:
+      # jid: "{{ deploy_result_item.ansible_job_id }}"
+    # with_items: "{{ deploy_results.results }}"
+    # loop_control:
+      # loop_var: "deploy_result_item"
+    # register: async_poll_results
+    # until: async_poll_results.finished
+    # retries: 150
+    
+  - include_tasks: async_check_task.yaml
+    with_sequence: start=1 end=4
+    when: 
+    - async_poll_results_{{ item }}.results|map(attribute='finished')|min|int == 0
+    loop_control:
+      pause: 4
+
+  - name: dump check finish
+    vars:
+      check_finish: "{{ async_poll_results_4.results | map(attribute='finished') | min | int }}"
+    debug:
+      msg: 'check_finish: {{ check_finish }}'
+      
+  - name: dump check failed
+    vars:
+      find_string: "{{ async_poll_results_4.results | map(attribute='failed') | join(' ') | regex_search('(True)') }}"
+    debug:
+      msg: 'find_string: {{ find_string }}'    
+  
+  - name: dump async check results
+    debug:
+      msg: 'async_poll_results: {{ async_poll_results_4.results }}'
+    
+  # - name: dump async check results
+    # debug:
+      # msg: 'deploy a machine with name: {{ checked_result_item.host_name }}, id: {{ checked_result_item.host_id }}, ip: {{ checked_result_item.ip_addresses }}'
+    # with_items: "{{ checked_results.results }}"
+    # loop_control:
+      # loop_var: "checked_result_item"

@@ -1,0 +1,9 @@
+- name: deploy a machine
+  maas_machine:
+      maas_url: 'http://maas.adp.gic.ericsson.se/MAAS/'
+      api_key: 'EP2QFqr9RhYBHEpvgd:WfwgyKek6xhYHXRQBn:K6ftkVYLnMLaesm2phgtqnEjtDULKjkW'
+      state: present
+      tags_match:
+      - 'REMOTE-MGMT'
+  register: deploy_result_{{ item }}
+  ignore_error: True

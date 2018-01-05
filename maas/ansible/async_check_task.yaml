@@ -1,0 +1,18 @@
+- name: check the async results
+  async_status:
+    jid: "{{ result_item.ansible_job_id }}"
+  with_items: "{{ deploy_results.results }}"
+  loop_control:
+    loop_var: "result_item"
+  register: async_poll_results
+  ignore_errors: yes
+  
+- name: aggregate the results
+  set_fact:
+    # check_finish: "{{ async_poll_results.results | map(attribute='finished') | min }}"
+    async_poll_results_{{ item }}: "{{ async_poll_results }}"
+    
+- name: trigger fail
+  fail:
+    msg: "There is unfinished async job."
+  when: async_poll_results.results | map(attribute='finished') | min | int == 0
