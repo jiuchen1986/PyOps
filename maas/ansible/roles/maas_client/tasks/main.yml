@@ -1,0 +1,52 @@
+---
+- name: Init the client host
+  include_tasks: maas_client_init.yml  
+  when: init_client
+  
+
+- name: Deploy machines
+  maas_machine:
+    maas_url: "{{ maas_url }}"
+    api_key: "{{ api_key }}"
+    state: present
+    meta_data:
+      group_name: "{{ deploy_item.group }}"
+      target_os: "{{ deploy_item.os | default('centos') }}"
+    tags_match: "{{ deploy_item.match.tags }}"
+    target_os: "{{ deploy_item.os | default('centos') }}"
+    batch_deploy: "{{ deploy_item.size }}"
+  async: 700
+  poll: 0
+  with_items: "{{ deploy_machines }}"
+  loop_control:
+    loop_var: deploy_item
+  register: deploy_results
+
+- name: Wait for deploying
+  async_status:
+    jid: "{{ deploy_result_item.ansible_job_id }}"
+  with_items: "{{ deploy_results.results }}"
+  loop_control:
+    loop_var: deploy_result_item
+  register: async_poll_results
+  until: async_poll_results.finished
+  retries: 300    
+
+- name: Add deployed machines to in-memory inventory
+  include_tasks: add_group_machines.yml
+  with_items: "{{ async_poll_results.results }}"
+  loop_control:
+    loop_var: deploy_result
+
+- name: Release clean machines
+  include_tasks: release_group_clean_machines.yml
+  with_items: "{{ async_poll_results.results }}"
+  loop_control:
+    loop_var: deploy_result
+
+# - name: Dump the result of deployment
+  # include_tasks: dump_group_machines.yml
+  # with_dict: "{{ groups }}"
+  # loop_control:
+    # loop_var: group_item
+  # when: group_item.key != "maasclient"

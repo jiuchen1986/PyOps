@@ -1,0 +1,5 @@
+
+- hosts: maasclient
+
+  roles:
+  - maas_client

@@ -1,0 +1,10 @@
+    
+- name: Release the clean machines in a group
+  maas_machine:
+    maas_url: "{{ maas_url }}"
+    api_key: "{{ api_key }}"
+    state: absent
+    id_match: "{{ clean_machine }}"
+  with_items: "{{ deploy_result.clean_machines }}"
+  loop_control:
+    loop_var: clean_machine
