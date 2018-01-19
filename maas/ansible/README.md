@@ -1,7 +1,7 @@
-#Automated MAAS Operations via Ansible
+# Automated MAAS Operations via Ansible
 This project provides modules, plugins and roles with samples enabling the automation of MAAS operations using Ansible playbook.
 
-##Requirements for Running MAAS related Ansible Modules
+## Requirements for Running MAAS related Ansible Modules
 As the current developed and developing Ansible modules for MAAS operations all use the `python-libmaas` open source python library provided by the MAAS team which requires `python >= 3.5`, see:[https://github.com/maas/python-libmaas](https://github.com/maas/python-libmaas "python-libmaas on github"), the target hosts running the MAAS related Ansible modules are required to have:
 
 - python >= 3.5
@@ -41,7 +41,7 @@ Note that the function of manual installation for python 3.5 in the initiating t
 
 The HOWTO of running the initiating task is included in the **Running Sample Ansible Playbook** section.
 
-##Bare Metal Acquire/Deploy/Release on MAAS
+## Bare Metal Acquire/Deploy/Release on MAAS
 To enable the acquisition, the deployment and the releasing of the bare metal machine on MAAS, following staff are given in this repo:
 
 
@@ -54,4 +54,4 @@ To enable the acquisition, the deployment and the releasing of the bare metal ma
 
 The HOWTO of running the invovled tasks above is included in the **Running Sample Ansible Playbook** section.
 
-##Running Sample Ansible Playbook
+## Running Sample Ansible Playbook
