@@ -5,26 +5,28 @@
 ANSIBLE_METADATA = {
     'metadata_version': '1.1',
     'status': ['preview'],
-    'supported_by': 'Xin Chen'
+    'supported_by': 'community'
 }
 
 DOCUMENTATION = '''
 ---
 module: maas_machine
 
-short_description: deploy/release a machine via maas
+short_description: deploy/release bare metal machines via maas
 
 version_added: "2.4"
 
 description:
-    - This module is used to deploy/release a machine via maas.
-    - Tha maas tag awareness is supported.
-    - The module will return the status of the machines involved.
+    - This module is used to deploy/release bare metal machines via maas.
+    - The module will return the status and information of the machines involved.
 
 requirements:
     - "python >= 3.5"
     - "python-libmaas >= 0.5.0"    
     
+notes:
+   - The 'check_mode' isn't supported for the current version.
+
 options:
     maas_url:
         description:
@@ -184,7 +186,9 @@ ip_addresses:
     description: The list of the ip addresses of the target machine.
     type: list
 batch_machines:
-    description: The result of the batch deploy.
+    description: 
+        - The information of machines deployed by the batch deploy.
+        - Each element contains 'host_name', 'host_id', 'zone_name', 'status' and 'ip_addresses'.
     type: list
 clean_machines:
     description: The list of the system ids of the machines that have to tried to be deployed and failed.
