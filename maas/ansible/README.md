@@ -38,6 +38,13 @@ Please make sure that after being processed by the `unarchive` Ansible module, t
 
 It is strongly recommended that keeping the python-libmaas's version and package unchanged.
 
+If there is nothing in the `roles/maas_client/files/`, please manually download the packages from following recommended links:
+
+- pip-9.0.1.tar.gz: [https://pypi.python.org/pypi/pip](https://pypi.python.org/pypi/pip)
+- Python-3.5.4.tgz: [https://www.python.org/downloads/release/python-352/](https://www.python.org/downloads/release/python-352/)
+- python-libmaas-bm-auto.zip: [https://codeload.github.com/jiuchen1986/python-libmaas/zip/bm-auto](https://codeload.github.com/jiuchen1986/python-libmaas/zip/bm-auto)
+- setuptools-38.4.0: [https://pypi.python.org/pypi/setuptools](https://pypi.python.org/pypi/setuptools)
+
 Note that the function of manual installation for python 3.5 in the initiating task hasn't been tested yet. Therefore, python 3.5 needs to be ready and the ansible variable `ansible_python_interpreter` needs to be set correctly to the executable script of python 3.5 for the target host running the MAAS related modules before running any playbook.
 
 The HOWTO of running the initiating task is included in the **Running Sample Ansible Playbook** section.
