@@ -92,7 +92,7 @@ To run the samples, generally only a host as a client host requesting the MAAS A
     #inventory/inventory
 
     [maasclient]
-    guided-boaransible_host=10.133.21.190 ansible_user=ubuntu ansible_python_interpreter=/usr/bin/python3.5
+    guided-boar ansible_host=10.133.21.190 ansible_user=ubuntu ansible_python_interpreter=/usr/bin/python3.5
 
 Note that the `ansible_python_interpreter` needs to be carefully set to fulfill the requirements of MAAS related Ansible modules.
 
