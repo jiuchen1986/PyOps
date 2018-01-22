@@ -1,4 +1,7 @@
 
+init_client: no
+python35_manual: no
+
 maas_url: "http://maas.adp.gic.ericsson.se/MAAS/"
 api_key: "EP2QFqr9RhYBHEpvgd:WfwgyKek6xhYHXRQBn:K6ftkVYLnMLaesm2phgtqnEjtDULKjkW"
 

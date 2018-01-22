@@ -1,7 +1,4 @@
 
-init_client: no
-python35_manual: no
-
 setuptools_ver: 38.4.0
 pip_ver: 9.0.1
 libmaas_ver: bm-auto
