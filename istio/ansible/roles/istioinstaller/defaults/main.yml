@@ -3,9 +3,9 @@ istio_version: 0.5.0
 istio_package: istio-{{ istio_version }}-linux.tar.gz
 istio_download_url: https://github.com/istio/istio/releases/download/{{ istio_version }}/{{ istio_package }}
 root_dir: /usr/local
-istio_package_path: {{ root_dir }}/{{ istio_package }}
-istio_dir: {{ root_dir }}/istio-{{ istio_version }}
-istio_kube_dir: {{ istio_dir }}/install/kubernetes
+istio_package_path: "{{ root_dir }}/{{ istio_package }}"
+istio_dir: "{{ root_dir }}/istio-{{ istio_version }}"
+istio_kube_dir: "{{ istio_dir }}/install/kubernetes"
 
 # istio or istio-auth
 istio_choice: istio
