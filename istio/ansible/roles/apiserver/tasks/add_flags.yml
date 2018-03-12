@@ -1,0 +1,17 @@
+# tasks to add 'MutatingAdmissionWebhook,ValidatingAdmissionWebhook' admission control flags to api server
+# and restart api server
+
+- name: Modify admission control flags of api server
+  shell: sed -i 's/NodeRestriction,ResourceQuota/NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota/' /etc/kubernetes/manifests/kube-apiserver.yaml
+    
+- name: Restart kubelet service
+  systemd:
+      name: kubelet
+      state: restarted
+
+- name: Check whether the api server restarts
+    shell: docker ps | grep apiserver | grep -v pause
+    register: result
+    until: result.stdout != ""
+    retries: 10
+    delay: 2

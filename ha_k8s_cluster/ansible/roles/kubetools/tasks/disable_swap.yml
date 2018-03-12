@@ -1,0 +1,9 @@
+# tasks to disable swap on the host
+
+- name: Disable swap currently
+  become: yes
+  command: swapoff -a
+
+## TO DO...
+# - name: Disable swap permanently
+#   become: yes

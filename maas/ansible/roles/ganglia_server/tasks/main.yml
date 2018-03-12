@@ -1,0 +1,20 @@
+---
+- name: Init the client host
+  include_tasks: maas_client_init.yml  
+  when: init_client
+  
+
+- name: Deploy machines in MAAS
+  include_tasks: deploy_machines.yml    
+
+- name: Add deployed machines to in-memory inventory
+  include_tasks: add_group_machines.yml
+  with_items: "{{ deploy_results.results }}"
+  loop_control:
+    loop_var: deploy_result
+
+- name: Release clean machines
+  include_tasks: release_group_clean_machines.yml
+  with_items: "{{ deploy_results.results }}"
+  loop_control:
+    loop_var: deploy_result

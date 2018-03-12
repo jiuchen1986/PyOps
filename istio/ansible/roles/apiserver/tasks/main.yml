@@ -1,0 +1,9 @@
+---
+- name: Check existance of the istio needing flags of api server
+  shell: grep 'MutatingAdmissionWebhook,ValidatingAdmissionWebhook' /etc/kubernetes/manifests/kube-apiserver.yaml
+  register: check_result
+
+- name: Add istio needing admission control flags to api server
+  become: yes
+  include_tasks: add_flags.yml
+  when: check_result.stdout == ""

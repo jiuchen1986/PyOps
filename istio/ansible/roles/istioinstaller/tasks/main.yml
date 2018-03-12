@@ -1,0 +1,11 @@
+---
+- name: Install istio core components
+  become: yes
+  shell: kubectl apply -f {{ istio_choice }}.yaml
+  args:
+    chdir: {{ istio_kube_dir }}
+
+- name: Install istio sidecar auto injector
+  become: yes
+  when: {{ istio_sidecar_inject }} == auto
+  include_tasks: install_sidecar_injector.yml

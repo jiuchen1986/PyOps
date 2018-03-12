@@ -1,0 +1,9 @@
+---
+- name: Install kubetools
+  include_tasks: disable_swap.yml
+
+- name: Install Docker
+  include_tasks: install_docker.yml    
+
+- name: Install kubetools
+  include_tasks: install_kubetools.yml

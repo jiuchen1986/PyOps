@@ -1,0 +1,34 @@
+# tasks to create etcd CA certs
+
+- name: Install curl
+  become: yes
+  yum:
+    name: curl
+    state: present
+
+- name: Install cfssl and cfssljson
+  become: yes
+  vars:
+    - 
+  command: curl -o /usr/local/bin/cfssl https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
+  
+- name: Install cfssl
+  become: yes
+  command: curl -o /usr/local/bin/cfssl https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
+
+- name: Install cfssl
+  become: yes
+  command: curl -o /usr/local/bin/cfssl https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64  
+
+- name: Install Docker by yum
+  become: yes
+  yum:
+    name: docker
+    state: present
+
+- name: Enable and start the Docker service
+  become: yes
+  systemd:
+    state: started
+    enabled: yes
+    name: docker

@@ -1,0 +1,33 @@
+# tasks to install istio auto sidecar injector
+
+- name: Copy missing scripts
+  copy:
+    src: "{{ item }}"
+    dest: {{ istio_kube_dir }}/{{ item }}
+    owner: root
+    group: root
+    mode: u+x, g+x, o+x
+  with_items: "{{ missing_scripts }}"
+
+- name: Generate k8s CA signed cert/key
+  shell: ./webhook-create-signed-cert.sh --service istio-sidecar-injector --namespace istio-system --secret sidecar-injector-certs
+  args:
+    chdir: "{{ istio_kube_dir }}"
+    
+- name: Install sidecar injection configmap
+  shell: kubectl apply -f istio-sidecar-injector-configmap-release.yaml
+  args:
+    chdir: "{{ istio_kube_dir }}"
+
+- name: Set the caBundle in the webhook
+  shell: cat istio-sidecar-injector.yaml | ./webhook-patch-ca-bundle.sh > istio-sidecar-injector-with-ca-bundle.yaml
+  args:
+    chdir: "{{ istio_kube_dir }}"
+
+- name: Install sidecar injector webhook
+  shell: kubectl apply -f istio-sidecar-injector-with-ca-bundle.yaml
+  args:
+    chdir: "{{ istio_kube_dir }}"
+    
+- name: Set the default namespace to use auto injection
+  shell: kubectl lable namespace default isito-injection=enabled

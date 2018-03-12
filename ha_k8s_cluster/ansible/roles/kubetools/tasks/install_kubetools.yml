@@ -1,0 +1,55 @@
+# tasks to install kubeadm, kubelet, and optional kubectl
+# host variable 'install_kubectl' is used to switch installation of kubectl
+
+- name: Add Kubernetes repo to yum
+  become: yes
+  copy:
+    src: kubernetes.repo
+    dest: /etc/yum.repos.d/kubernetes.repo
+    owner: root
+    group: root
+    
+- name: Disable SELinux
+  become: yes
+  command: setenforce 0
+
+- name: Enable iptables
+  become: yes
+  copy:
+    src: k8s.conf
+    dest: /etc/sysctl.d/k8s.conf
+    owner: root
+    group: root
+    
+- name: Reload sysctl
+  become: yes
+  command: sysctl --system
+
+- name: Install kubelet
+  become: yes
+  yum:
+    name: kubelet
+    state: present
+
+- name: Install kubeadm
+  become: yes
+  yum:
+    name: kubeadm
+    state: present
+    
+- name: Install kubectl if so
+  become: yes
+  yum:
+    name: kubectl
+    state: present
+  when: install_kubectl
+
+## TO DO...  
+# - name: Check cgroup driver
+
+- name: Enable and start the kubelet service
+  become: yes
+  systemd:
+    state: started
+    enabled: yes
+    name: kubelet

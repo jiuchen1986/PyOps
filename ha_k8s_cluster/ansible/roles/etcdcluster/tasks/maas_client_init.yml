@@ -1,0 +1,112 @@
+---
+- name: Install common tools (yum)
+  become: yes
+  yum:
+    name: "{{item}}"
+    state: present
+    update_cache: yes
+  with_items:
+  - gcc
+  - unzip  
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  
+- name: Install common tools (apt)
+  become: yes
+  apt:
+    name: "{{item}}"
+    state: present
+    update_cache: yes
+  with_items:
+  - gcc
+  - unzip  
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+- set_fact:
+    python35_package_tgz: "Python-{{ python35_ver }}"
+    cmd_opts:
+    - build
+    - install
+
+- name: Copy setuptools package
+  unarchive: src=setuptools-{{ setuptools_ver }}.zip dest=~/
+
+- name: Copy pip package
+  unarchive: src=pip-{{ pip_ver }}.tar.gz dest=~/
+
+- name: Copy python-libmaas package
+  unarchive: src=python-libmaas-{{ libmaas_ver }}.zip dest=~/
+  
+- block:
+  
+  - name: Install python 3.5 dependencies (yum)
+    become: yes
+    yum:
+      name: "{{item}}"
+      state: present
+      update_cache: yes
+    with_items:
+    - openssl-devel
+    - bzip2-devel
+    - expat-devel
+    - gdbm-devel
+    - readline-devel
+    - sqlite-devel
+    - zlib-devel  
+    when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+  - name: Install python 3.5 dependencies (apt)
+    become: yes
+    apt:
+      name: "{{item}}"
+      state: present
+      update_cache: yes
+    with_items:
+    - zlib1g-dev
+    - unzip
+    - libssl-dev
+    - libreadline-dev
+    - libsqlite3-dev
+    - openssl  
+    when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  
+  - name: Copy python 3.5 package
+    unarchive: src=Python-{{ python35_ver }}.tgz dst=~/
+
+  - name: Configure python 3.5
+    become: yes
+    command: ./configure --prefix=/usr/local/python
+    args:
+      chdir: "Python-{{ python35_ver }}/"
+
+  - name: Install python 3.5
+    become: yes
+    shell: make && make install
+    args:
+      chdir: "Python-{{ python35_ver }}/"
+
+  - name: Make lnk to python 3.5
+    become: yes
+    command: ln -s /usr/local/python/bin/python3.5 /usr/bin/python3.5 
+
+  when: python35_manual    
+
+- name: Install setuptools package
+  become: yes
+  command: python3.5 setup.py {{ item }}
+  args:
+    chdir: "setuptools-{{ setuptools_ver }}/"
+  with_items: "{{ cmd_opts }}"
+  
+- name: Install pip package
+  become: yes
+  command: python3.5 setup.py {{ item }}
+  args:
+    chdir: "pip-{{ pip_ver }}/"
+  with_items: "{{ cmd_opts }}"
+  
+- name: Install python-libmaas package
+  become: yes
+  command: python3.5 setup.py {{ item }}
+  args:
+    chdir: "python-libmaas-{{ libmaas_ver }}/"
+  with_items: "{{ cmd_opts }}"

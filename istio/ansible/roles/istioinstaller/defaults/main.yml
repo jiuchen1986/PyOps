@@ -1,0 +1,15 @@
+
+istio_version: 0.5.0
+root_dir: /usr/local
+istio_dir: {{ root_dir }}/istio-{{ istio_version }}
+istio_kube_dir: {{ istio_dir }}/install/kubernetes
+
+# istio or istio-auth
+istio_choice: istio
+
+# auto or manual
+istio_sidecar_inject: auto
+
+missing_scripts:
+- "webhook-create-signed-cert.sh" 
+- "webhook-patch-ca-bundle.sh"
