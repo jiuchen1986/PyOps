@@ -6,5 +6,5 @@
 
 - name: Install istio sidecar auto injector
   become: yes
-  when: {{ istio_sidecar_inject }} == auto
+  when: istio_sidecar_inject == auto
   include_tasks: install_sidecar_injector.yml
