@@ -1,0 +1,8 @@
+
+kubectl_args:
+- "delete secret sidecar-injector-certs -n istio-system"
+- "delete csr istio-sidecar-injector.istio-system"
+- "label namespace default istio-injection-"
+- "delete -f install/kubernetes/istio-sidecar-injector-with-ca-bundle.yaml"
+- "delete -f install/kubernetes/{{ istio_choice }}.yaml"
+  

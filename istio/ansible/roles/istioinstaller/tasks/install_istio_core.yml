@@ -8,10 +8,10 @@
 - name: Unpack istio package
   unarchive:
     src: "{{ istio_package_path }}"
-    dest: "{{ istio_dir }}"
+    dest: "{{ root_dir }}"
     remote_src: yes
     
 - name: Install istio core components
-  shell: kubectl apply -f {{ istio_choice }}.yaml
+  shell: /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f {{ istio_choice }}.yaml
   args:
     chdir: "{{ istio_kube_dir }}"

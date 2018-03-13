@@ -1,0 +1,37 @@
+
+- hosts: localhost
+  gather_facts: no
+  connection: local
+  tasks:
+  - name: Add first master to istioinstaller group
+    add_host:
+      name: "{{ groups['master'][0] }}"
+      groups: istioinstaller
+
+- hosts: istioinstaller
+  become: yes
+  vars_files:
+  - roles/istioinstaller/defaults/main.yml
+  - clean_vars.yml
+  tasks:
+  - name: Uninstall istio
+    shell: /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf {{ item }}
+    args:
+      chdir: "{{ istio_dir }}"
+    with_items: "{{ kubectl_args }}"
+    ignore_errors: yes
+  
+  - name: Clean istio packages
+    shell: rm -rf {{ root_dir }}/istio*
+
+- hosts: master
+  become: yes
+  tasks:
+  - name: Clean the istio needed addmission control flags
+    shell: sed -i 's/NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota/NodeRestriction,ResourceQuota/' /etc/kubernetes/manifests/kube-apiserver.yaml
+
+  - name: Restart kubelet service
+    systemd:
+      name: kubelet
+      state: restarted 
+  

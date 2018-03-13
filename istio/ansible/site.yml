@@ -1,8 +1,17 @@
 
+- hosts: localhost
+  gather_facts: no
+  connection: local
+  tasks:
+  - name: Add first master to istioinstaller group
+    add_host:
+      name: "{{ groups['master'][0] }}"
+      groups: istioinstaller
+  
 - hosts: master
   roles:
   - apiserver
-  
+
 - hosts: istioinstaller
   roles:
   - istioinstaller
