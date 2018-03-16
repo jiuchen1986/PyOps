@@ -13,6 +13,8 @@ istio_choice: istio
 # auto or manual
 istio_sidecar_inject: auto
 
+kubectl_path: /usr/local/bin
+
 missing_scripts:
 - "webhook-create-signed-cert.sh" 
 - "webhook-patch-ca-bundle.sh"

@@ -79,10 +79,10 @@ openssl genrsa -out ${tmpdir}/server-key.pem 2048
 openssl req -new -key ${tmpdir}/server-key.pem -subj "/CN=${service}.${namespace}.svc" -out ${tmpdir}/server.csr -config ${tmpdir}/csr.conf
 
 # clean-up any previously created CSR for our service. Ignore errors if not present.
-/usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf delete csr ${csrName} 2>/dev/null || true
+kubectl delete csr ${csrName} 2>/dev/null || true
 
 # create  server cert/key CSR and  send to k8s API
-cat <<EOF | /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf create -f -
+cat <<EOF | kubectl create -f -
 apiVersion: certificates.k8s.io/v1beta1
 kind: CertificateSigningRequest
 metadata:
@@ -99,17 +99,17 @@ EOF
 
 # verify CSR has been created
 while true; do
-    /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get csr ${csrName}
+    kubectl get csr ${csrName}
     if [ "$?" -eq 0 ]; then
         break
     fi
 done
 
 # approve and fetch the signed certificate
-/usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf certificate approve ${csrName}
+kubectl certificate approve ${csrName}
 # verify certificate has been signed
 for x in $(seq 10); do
-    serverCert=$(/usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf get csr ${csrName} -o jsonpath='{.status.certificate}')
+    serverCert=$(kubectl get csr ${csrName} -o jsonpath='{.status.certificate}')
     if [[ ${serverCert} != '' ]]; then
         break
     fi
@@ -124,9 +124,9 @@ echo ${serverCert} | openssl base64 -d -A -out ${tmpdir}/server-cert.pem
 
 
 # create the secret with CA cert and server cert/key
-/usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf create secret generic ${secret} \
+kubectl create secret generic ${secret} \
         --from-file=key.pem=${tmpdir}/server-key.pem \
         --from-file=cert.pem=${tmpdir}/server-cert.pem \
         --dry-run -o yaml |
-    /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf -n ${namespace} apply -f -
+    kubectl -n ${namespace} apply -f -
 

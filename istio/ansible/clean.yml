@@ -11,11 +11,10 @@
 - hosts: istioinstaller
   become: yes
   vars_files:
-  - roles/istioinstaller/defaults/main.yml
   - clean_vars.yml
   tasks:
   - name: Uninstall istio
-    shell: /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf {{ item }}
+    shell: kubectl {{ item }}
     args:
       chdir: "{{ istio_dir }}"
     with_items: "{{ kubectl_args }}"
@@ -23,6 +22,11 @@
   
   - name: Clean istio packages
     shell: rm -rf {{ root_dir }}/istio*
+
+  - name: Remove kubectl from current path
+    shell: rm -rf /usr/bin/kubectl
+
+  environment: "{{ kube_env }}"
 
 - hosts: master
   become: yes

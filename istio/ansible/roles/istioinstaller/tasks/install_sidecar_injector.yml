@@ -15,7 +15,7 @@
     chdir: "{{ istio_kube_dir }}"
     
 - name: Install sidecar injection configmap
-  shell: /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f istio-sidecar-injector-configmap-release.yaml
+  shell: kubectl apply -f istio-sidecar-injector-configmap-release.yaml
   args:
     chdir: "{{ istio_kube_dir }}"
 
@@ -25,9 +25,9 @@
     chdir: "{{ istio_kube_dir }}"
 
 - name: Install sidecar injector webhook
-  shell: /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f istio-sidecar-injector-with-ca-bundle.yaml
+  shell: kubectl apply -f istio-sidecar-injector-with-ca-bundle.yaml
   args:
     chdir: "{{ istio_kube_dir }}"
     
 - name: Set the default namespace to use auto injection
-  shell: /usr/local/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf label namespace default istio-injection=enabled
+  shell: kubectl label namespace default istio-injection=enabled

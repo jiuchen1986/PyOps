@@ -1,4 +1,12 @@
 ---
+- name: Copy kubectl to current path
+  copy:
+    src: "{{ kubectl_path }}/kubectl"
+    dest: /usr/bin/kubectl
+    owner: root
+    group: root
+    mode: u+x
+    remote_src: yes
 
 - name: Install istio core components
   become: yes
