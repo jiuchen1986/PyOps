@@ -26,7 +26,8 @@
   - name: Remove kubectl from current path
     shell: rm -rf /usr/bin/kubectl
 
-  environment: "{{ kube_env }}"
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
 
 - hosts: master
   become: yes

@@ -1,11 +1,14 @@
 istio_version: 0.5.0
 root_dir: /usr/local
+# do not change this
 istio_dir: "{{ root_dir }}/istio-{{ istio_version }}"
 
 # istio or istio-auth
 istio_choice: istio
 
+# auto or manual
+istio_sidecar_inject: auto
+
 kubectl_path: /usr/local/bin
-kube_env:
-  KUBECONFIG: /etc/kubernetes/admin.conf
+kubeconfig_path: /etc/kubernetes/admin.conf
 

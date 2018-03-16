@@ -15,6 +15,7 @@
 - hosts: istioinstaller
   roles:
   - istioinstaller
-  environment: "{{ kube_env }}"
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"
   
      
