@@ -20,7 +20,7 @@ An optional host group named `istioinstaller` can be defined in the inventory fi
 If the `istioinstaller` group is ignored, the first host in the `master` group will be selected and added to `istioinstaller` group on run-time.
 
 ### Configure group variables
-Several configurable variables for the installation are listed in `group_vars/istioinstaller.yml` as follows:
+Several configurable variables for the installation are listed in `group_vars/istioinstaller.yaml` as follows:
 
     istio_version: 0.5.0
     root_dir: /usr/local
@@ -47,15 +47,15 @@ Several configurable variables for the installation are listed in `group_vars/is
 ### Install Istio
 Completing the above steps, Istio could be installed by running:
 
-    ansible-playbook -i path_to_your_inventory_file install.yml 
+    ansible-playbook -i path_to_your_inventory_file install.yaml 
 
 ### Uninstall Istio
-A simple playbook for cleaning the changes applied in `install.yml` is provided. To use it just run:
+A simple playbook for cleaning the changes applied in `install.yaml` is provided. To use it just run:
 
-    ansible-playbook -i path_to_your_inventory_file clean.yml
+    ansible-playbook -i path_to_your_inventory_file clean.yaml
 
 ## Notice
-- The task `Install istio core components` in playbook `install.yml` may fail sometimes. Just rerun the playbook again, all the tasks should success.
+- The task `Install istio core components` in playbook `install.yaml` may fail sometimes. Just rerun the playbook again, all the tasks should success.
 - Do not label the `default` namespace with `istio-injection` on the target Kubernetes cluster before running the installation.
-- Any operation beyond the `install.yml` will not be cleaned by running the `clean.yml` playbook.
-- Any cleaning of the steps applied in `install.yml` playbook by manual may cause fails when running `clean.yml` playbook.  
+- Any operation beyond the `install.yaml` will not be cleaned by running the `clean.yaml` playbook.
+- Any cleaning of the steps applied in `install.yaml` playbook by manual may cause fails when running `clean.yaml` playbook.  
