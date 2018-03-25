@@ -53,6 +53,10 @@ Completing the above steps, Istio could be installed by running:
 A simple playbook for cleaning the changes applied in `install.yaml` is provided. To use it just run:
 
     ansible-playbook -i path_to_your_inventory_file clean.yaml
+Note that the `clean.yaml` will remove the 'MutatingAdmissionWebhook' and the 'ValidatingAdmissionWebhook' from the admission control flags of the api server by default. If these two flags are needed to be kept, set the variables below in `clean_vars.yaml` to 'no':
+
+    remove_mut_flag: yes
+    remove_val_flag: yes
 
 ## Notice
 - The task `Install istio core components` in playbook `install.yaml` may fail sometimes. Just rerun the playbook again, all the tasks should success.
