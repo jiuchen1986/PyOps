@@ -1,0 +1,103 @@
+---
+- name: Install common tools (yum)
+  become: yes
+  yum:
+    name: "{{item}}"
+    state: present
+    update_cache: yes
+  with_items:
+  - gcc
+  - unzip  
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  
+- name: Install common tools (apt)
+  become: yes
+  apt:
+    name: "{{item}}"
+    state: present
+    update_cache: yes
+  with_items:
+  - gcc
+  - unzip  
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  
+- block:
+  
+  - name: Install python 3.5 dependencies (yum)
+    become: yes
+    yum:
+      name: "{{item}}"
+      state: present
+      update_cache: yes
+    with_items:
+    - openssl-devel
+    - bzip2-devel
+    - expat-devel
+    - gdbm-devel
+    - readline-devel
+    - sqlite-devel
+    - zlib-devel  
+    when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+  - name: Install python 3.5 dependencies (apt)
+    become: yes
+    apt:
+      name: "{{item}}"
+      state: present
+      update_cache: yes
+    with_items:
+    - zlib1g-dev
+    - unzip
+    - libssl-dev
+    - libreadline-dev
+    - libsqlite3-dev
+    - openssl  
+    when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+    
+- name: Download and unpack python 3.5 package
+  unarchive:
+    src: https://www.python.org/ftp/python/{{ python35_ver }}/Python-{{ python35_ver }}.tgz
+    dest: /usr/local/
+    remote_src: yes
+
+  - name: Configure python 3.5
+    become: yes
+    command: ./configure --prefix=/usr/local/python
+    args:
+      chdir: /usr/local/Python-{{ python35_ver }}/
+
+  - name: Install python 3.5
+    become: yes
+    shell: make && make install
+    args:
+      chdir: /usr/local/Python-{{ python35_ver }}/
+
+  - name: Make link to python 3.5
+    become: yes
+    command: ln -s /usr/local/python/bin/python3.5 /usr/bin/python3.5 
+
+  when: python35_manual    
+
+- name: Download get-pip.py
+  become: yes
+  get_url:
+    url: https://bootstrap.pypa.io/get-pip.py
+    dest: /usr/local/
+  
+- name: Install pip and setuptools via get-pip.py
+  become: yes
+  command: python3.5 /usr/local/get-pip.py -U
+  
+- name: Download and unpack python-libmaas package
+  become: yes
+  unarchive: 
+    src: https://github.com/maas/python-libmaas/archive/{{ libmaas_ver }}.zip
+    dest: /usr/local/
+
+- name: Build python-libmaas package
+  become: yes
+  command: python3.5 /usr/local/python-libmaas-{{ libmaas_ver }}/setup.py build
+  
+- name: Install python-libmaas package
+  become: yes
+  command: python3.5 /usr/local/python-libmaas-{{ libmaas_ver }}/setup.py install

@@ -22,7 +22,7 @@ description:
 
 requirements:
     - "python >= 3.5"
-    - "python-libmaas >= 0.5.0"    
+    - "python-libmaas >= 0.6.0"    
     
 notes:
    - The 'check_mode' isn't supported for the current version.

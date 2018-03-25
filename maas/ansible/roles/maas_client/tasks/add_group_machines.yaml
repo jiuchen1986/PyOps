@@ -1,0 +1,30 @@
+
+- set_fact:
+    target_os: "{{ deploy_result.meta_data.target_os | default('centos') }}"
+
+- set_fact:
+    python_interpreter: "/usr/bin/python2.7"
+  when: target_os == 'centos'
+  
+- set_fact:
+    python_interpreter: "/usr/bin/python3.5"
+  when: target_os == 'ubuntu'
+
+- name: Add the deployed machines in a group to in-memory inventory with a group 'all'
+  add_host:
+    name: "{{ machine_item.host_name }}"
+    ansible_host: "{{ machine_item.ip_addresses[0] }}"
+    ansible_user: "{{ deploy_result.meta_data.target_os | default('centos') }}"
+    ansible_python_interpreter: "{{ python_interpreter }}"
+  with_items: "{{ deploy_result.batch_machines }}"
+  loop_control:
+    loop_var: machine_item
+    
+- name: Add the deployed machines in a group to in-memory inventory with the specified group
+  add_host:
+    name: "{{ machine_item.host_name }}"
+    groups: "{{ deploy_result.meta_data.group_name }}"
+    inventory_dir: "{{ inventory_dir }}"
+  with_items: "{{ deploy_result.batch_machines }}"
+  loop_control:
+    loop_var: machine_item

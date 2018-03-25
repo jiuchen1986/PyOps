@@ -1,0 +1,27 @@
+---
+- hosts: maasclient
+
+  roles:
+  - maas_client
+
+- hosts: localhost
+  gather_facts: no
+  connection: local
+
+  tasks:
+  - name: add the newly deployed hosts to the 'monitoragent' group
+    add_host:
+      name: "{{ item.key }}"
+      groups: monitoragent
+    with_dict: "{{ hostvars }}"
+    when: "'maasclient' not in item.value.group_names"    
+
+- hosts: all
+  gather_facts: no
+
+  tasks:
+  - name: echo the group and hosts
+    shell: echo {{ inventory_hostname }} in {{ group_names }} > hostinfo.txt
+    args:
+      creates: hostinfo.txt
+    when: "'maasclient' not in group_names"      
