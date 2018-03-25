@@ -1,8 +1,29 @@
 # tasks to add 'MutatingAdmissionWebhook,ValidatingAdmissionWebhook' admission control flags to api server
 # and restart api server
 
-- name: Modify admission control flags of api server
-  shell: sed -i 's/NodeRestriction,ResourceQuota/NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota/' /etc/kubernetes/manifests/kube-apiserver.yaml
+# According to the recommendation by Kubernetes, 'ResourceQuota' should appear as the last admission control flag to the api server.
+# And 'MutatingAdmissionWebhook' and 'ValidatingAdmissionWebhook' usually are placed in the front of 'ResourceQuota'.
+# Therefore, this play will just fail if 'ResourceQuota' is absent.
+- name: Check existence of 'ResourceQuota'
+  shell: grep 'ResourceQuota' /etc/kubernetes/manifests/kube-apiserver.yaml
+
+- name: Check existence of 'MutatingAdmissionWebhook'
+  shell: grep 'MutatingAdmissionWebhook' /etc/kubernetes/manifests/kube-apiserver.yaml
+  ignore_errors: yes
+  register: check_mut_result
+
+- name: Add 'MutatingAdmissionWebhook'
+  shell: sed -i 's/ResourceQuota/MutatingAdmissionWebhook,ResourceQuota/' /etc/kubernetes/manifests/kube-apiserver.yaml
+  when: check_mut_result.stdout == ""
+  
+- name: Check existence of 'ValidatingAdmissionWebhook'
+  shell: grep 'ValidatingAdmissionWebhook' /etc/kubernetes/manifests/kube-apiserver.yaml
+  ignore_errors: yes
+  register: check_val_result
+
+- name: Add 'ValidatingAdmissionWebhook'
+  shell: sed -i 's/ResourceQuota/ValidatingAdmissionWebhook,ResourceQuota/' /etc/kubernetes/manifests/kube-apiserver.yaml
+  when: check_val_result.stdout == ""
     
 - name: Restart kubelet service
   systemd:

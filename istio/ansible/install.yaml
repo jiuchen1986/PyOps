@@ -17,5 +17,6 @@
   - istioinstaller
   environment:
     KUBECONFIG: "{{ kubeconfig_path }}"
+    PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
   
      

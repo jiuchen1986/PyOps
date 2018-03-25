@@ -1,18 +1,9 @@
 ---
-- name: Copy kubectl to current path
-  copy:
-    src: "{{ kubectl_path }}/kubectl"
-    dest: /usr/bin/kubectl
-    owner: root
-    group: root
-    mode: u+x
-    remote_src: yes
-
 - name: Install istio core components
   become: yes
-  include_tasks: install_istio_core.yml
+  include_tasks: install_istio_core.yaml
 
 - name: Install istio sidecar auto injector
   become: yes
   when: istio_sidecar_inject == auto
-  include_tasks: install_sidecar_injector.yml
+  include_tasks: install_sidecar_injector.yaml

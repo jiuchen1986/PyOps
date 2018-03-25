@@ -1,3 +1,6 @@
+---
+remove_mut_flag: yes
+remove_val_flag: yes
 
 kubectl_args:
 - "delete secret sidecar-injector-certs -n istio-system"

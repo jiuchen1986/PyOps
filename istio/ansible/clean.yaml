@@ -11,7 +11,7 @@
 - hosts: istioinstaller
   become: yes
   vars_files:
-  - clean_vars.yml
+  - clean_vars.yaml
   tasks:
   - name: Uninstall istio
     shell: kubectl {{ item }}
@@ -23,18 +23,23 @@
   - name: Clean istio packages
     shell: rm -rf {{ root_dir }}/istio*
 
-  - name: Remove kubectl from current path
-    shell: rm -rf /usr/bin/kubectl
-
   environment:
     KUBECONFIG: "{{ kubeconfig_path }}"
+    PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
 
 - hosts: master
   become: yes
+  vars_files:
+  - clean_vars.yaml
   tasks:
+  - name: Clean 'MutatingAdmissionWebhook' addmission control flags
+    shell: sed -i 's/MutatingAdmissionWebhook,//' /etc/kubernetes/manifests/kube-apiserver.yaml
+    when: "{{ remove_mut_flag }}"
+    
   - name: Clean the istio needed addmission control flags
-    shell: sed -i 's/NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota/NodeRestriction,ResourceQuota/' /etc/kubernetes/manifests/kube-apiserver.yaml
-
+    shell: sed -i 's/ValidatingAdmissionWebhook//' /etc/kubernetes/manifests/kube-apiserver.yaml
+    when: "{{ remove_val_flag }}"
+    
   - name: Restart kubelet service
     systemd:
       name: kubelet
