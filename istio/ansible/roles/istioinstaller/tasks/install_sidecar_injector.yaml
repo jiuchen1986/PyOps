@@ -1,13 +1,12 @@
 # tasks to install istio auto sidecar injector
 
-- name: Copy missing scripts
-  copy:
-    src: "{{ item }}"
-    dest: "{{ istio_kube_dir }}/{{ item }}"
-    owner: root
-    group: root
-    mode: 0777
-  with_items: "{{ missing_scripts }}"
+- name: Download missing scripts when istio version = 0.5.0 or 0.5.1
+  get_url:
+    url: "{{ item }}"
+    dest: "{{ istio_kube_dir }}"
+    mode: 0766
+  with_items: "{{ missing_script_paths }}"
+  when: istio_version == "0.5.0" or istio_version == "0.5.1"
 
 - name: Generate k8s CA signed cert/key
   shell: ./webhook-create-signed-cert.sh --service istio-sidecar-injector --namespace istio-system --secret sidecar-injector-certs
