@@ -11,13 +11,6 @@
     dest: "{{ root_dir }}"
     remote_src: yes
  
-- name: Check whether the api server restarts
-  shell: docker ps | grep apiserver | grep -v pause
-  register: apiserver_result
-  until: apiserver_result.stdout != ""
-  retries: 10
-  delay: 2
- 
 - name: Install istio core components
   shell: kubectl apply -f {{ istio_choice }}.yaml
   args:

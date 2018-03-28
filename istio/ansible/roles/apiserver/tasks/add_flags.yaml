@@ -15,6 +15,8 @@
 - name: Add 'MutatingAdmissionWebhook'
   shell: sed -i 's/ResourceQuota/MutatingAdmissionWebhook,ResourceQuota/' /etc/kubernetes/manifests/kube-apiserver.yaml
   when: check_mut_result.stdout == ""
+  notify:
+  - Wait api server restarts
   
 - name: Check existence of 'ValidatingAdmissionWebhook'
   shell: grep 'ValidatingAdmissionWebhook' /etc/kubernetes/manifests/kube-apiserver.yaml
@@ -24,15 +26,5 @@
 - name: Add 'ValidatingAdmissionWebhook'
   shell: sed -i 's/ResourceQuota/ValidatingAdmissionWebhook,ResourceQuota/' /etc/kubernetes/manifests/kube-apiserver.yaml
   when: check_val_result.stdout == ""
-    
-- name: Restart kubelet service
-  systemd:
-      name: kubelet
-      state: restarted
-
-- name: Check whether the api server restarts
-  shell: docker ps | grep apiserver | grep -v pause
-  register: result
-  until: result.stdout != ""
-  retries: 10
-  delay: 2
+  notify:
+  - Wait api server restarts

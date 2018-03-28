@@ -1,0 +1,6 @@
+- name: Wait api server restarts
+  shell: docker ps | grep apiserver | grep -v pause
+  register: result
+  until: result.stdout != ""
+  retries: 10
+  delay: 2
