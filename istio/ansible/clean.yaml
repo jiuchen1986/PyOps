@@ -34,14 +34,21 @@
   tasks:
   - name: Clean 'MutatingAdmissionWebhook' addmission control flags
     shell: sed -i 's/MutatingAdmissionWebhook,//' /etc/kubernetes/manifests/kube-apiserver.yaml
-    when: "{{ remove_mut_flag }}"
+    when: remove_mut_flag
+    notify:
+    - Wait api server restarts
     
-  - name: Clean the istio needed addmission control flags
+  - name: Clean 'ValidatingAdmissionWebhook' addmission control flags
     shell: sed -i 's/ValidatingAdmissionWebhook//' /etc/kubernetes/manifests/kube-apiserver.yaml
-    when: "{{ remove_val_flag }}"
+    when: remove_val_flag
+    notify:
+    - Wait api server restarts
     
-  - name: Restart kubelet service
-    systemd:
-      name: kubelet
-      state: restarted 
+  handlers:
+  - name: Wait api server restarts
+    shell: docker ps | grep apiserver | grep -v pause
+    register: result
+    until: result.stdout != ""
+    retries: 10
+    delay: 2
   
