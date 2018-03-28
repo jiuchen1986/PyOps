@@ -15,8 +15,6 @@
 - name: Add 'MutatingAdmissionWebhook'
   shell: sed -i 's/ResourceQuota/MutatingAdmissionWebhook,ResourceQuota/' /etc/kubernetes/manifests/kube-apiserver.yaml
   when: check_mut_result.stdout == ""
-  notify:
-  - Wait api server restarts
   
 - name: Check existence of 'ValidatingAdmissionWebhook'
   shell: grep 'ValidatingAdmissionWebhook' /etc/kubernetes/manifests/kube-apiserver.yaml

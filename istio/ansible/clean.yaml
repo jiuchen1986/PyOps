@@ -35,8 +35,6 @@
   - name: Clean 'MutatingAdmissionWebhook' addmission control flags
     shell: sed -i 's/MutatingAdmissionWebhook,//' /etc/kubernetes/manifests/kube-apiserver.yaml
     when: remove_mut_flag
-    notify:
-    - Wait api server restarts
     
   - name: Clean 'ValidatingAdmissionWebhook' addmission control flags
     shell: sed -i 's/ValidatingAdmissionWebhook//' /etc/kubernetes/manifests/kube-apiserver.yaml
