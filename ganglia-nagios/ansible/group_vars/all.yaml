@@ -7,7 +7,7 @@ cluster_info:
     - "10.210.123.40:8661"  
     gmond_mode: multicast
     gmond_multicast_port: 8661
-    gmond_cluster_listenrs: []  # the nodes in the cluster on which gmonds are hearing data from other gmonds, only useful when 'gmond_mode' is 'unicast'
+    gmond_cluster_listeners: []  # the nodes in the cluster on which gmonds are hearing data from other gmonds, only useful when 'gmond_mode' is 'unicast'
     gmond_cluster_deaf_yes: []  # the nodes in the cluster on which gmonds are deaf, only useful when 'gmond_mode' is 'unicast'
   earth:
     gmond_cluster_name: earth
@@ -15,7 +15,7 @@ cluster_info:
     - "10.210.127.30:8662"
     gmond_mode: multicast
     gmond_multicast_port: 8662
-    gmond_cluster_listenrs: []
+    gmond_cluster_listeners: []
     gmond_cluster_deaf_yes: []
 
 # multicast or unicast
