@@ -1,0 +1,16 @@
+# tasks to uninstall gmond on the monitored hosts
+
+- block:      
+      
+  - name: Stop gmond service with systemd
+    systemd:
+      name: gmond
+      state: stopped
+      enabled: no
+    ignore_errors: yes
+  
+  - name: Uninstall all gmond related packages
+    shell: yum erase -y ganglia* 
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

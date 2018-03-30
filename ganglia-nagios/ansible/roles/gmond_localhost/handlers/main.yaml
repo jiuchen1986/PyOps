@@ -1,0 +1,12 @@
+# handlers
+- name: Enable and start gmond with systemd
+  systemd:
+    name: gmond
+    state: started
+    enabled: yes
+
+- name: Restart gmond with systemd
+  systemd:
+    name: gmond
+    state: restarted
+    enabled: yes

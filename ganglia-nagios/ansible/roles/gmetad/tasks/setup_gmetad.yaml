@@ -1,0 +1,33 @@
+# tasks to setup gmetad on the monitoring hosts
+
+- block:
+
+  - name: Upgrade yum packages
+    yum:
+      name: '*'
+      state: latest
+      
+  - name: Install epel release
+    yum:
+      name: epel-release
+      state: latest      
+      
+  - name: Install gmetad (yum)
+    yum:
+      name: ganglia-gmetad
+      state: latest
+    
+  - name: Configure for system requirement
+    include_tasks: config_system.yaml  
+  
+  - name: Configure gmetad
+    include_tasks: init_config_gmetad.yaml
+
+  - name: Enable and start gmetad with systemd
+    systemd:
+      name: gmetad
+      state: started
+      enabled: yes
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

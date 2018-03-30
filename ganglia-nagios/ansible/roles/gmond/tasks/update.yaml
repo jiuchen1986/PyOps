@@ -1,0 +1,26 @@
+# tasks to update gmond configuration on monitored hosts
+
+- block:
+    
+  - name: Configure for system requirement
+    include_tasks: config_system.yaml 
+
+  - name: Backup the original config file
+    shell: mv gmond.conf gmond.conf.bak
+    args:
+     chdir: /etc/ganglia/    
+  
+  - name: Copy config file with multicast mode
+    template:
+      src: gmond_multicast.conf.j2
+      dest: /etc/ganglia/gmond.conf
+    when: gmond_mode == 'multicast'
+
+  - name: Restart gmond with systemd
+    systemd:
+      name: gmond
+      state: restarted
+      enabled: yes
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

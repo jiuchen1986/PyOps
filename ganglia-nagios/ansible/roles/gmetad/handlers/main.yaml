@@ -1,0 +1,12 @@
+# handlers
+- name: Enable and start gmetad with systemd
+  systemd:
+    name: gmetad
+    state: started
+    enabled: yes
+
+- name: Restart gmetad with systemd
+  systemd:
+    name: gmetad
+    state: restarted
+    enabled: yes

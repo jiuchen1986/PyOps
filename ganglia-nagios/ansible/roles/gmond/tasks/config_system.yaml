@@ -1,0 +1,22 @@
+# tasks to config the system to meet requirements by configuration of gmond
+
+- block:
+
+  - name: Disable selinux
+    selinux:
+      state: disabled
+      
+  - name: Check max recv mem of system
+    shell: sysctl -n net.core.rmem_max
+    register: check_rmem_result
+    
+  - name: Config max recv mem of system
+    sysctl:
+      name: net.core.rmem_max
+      value: "{{ gmond_udp_recv_buffer }}"
+      state: present
+      reload: yes
+    when: check_rmem_result.stdout | int < gmond_udp_recv_buffer
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

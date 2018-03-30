@@ -1,0 +1,16 @@
+# tasks to uninstall gmetad on the monitoring hosts
+
+- block:      
+      
+  - name: Stop gmetad service with systemd
+    systemd:
+      name: gmetad
+      state: stopped
+      enabled: no
+    ignore_errors: yes
+  
+  - name: Uninstall all gmetad related packages
+    shell: yum erase -y ganglia* 
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

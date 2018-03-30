@@ -1,0 +1,10 @@
+# tasks to config the system to meet requirements by configuration of gmond
+
+- block:
+
+  - name: Disable selinux
+    selinux:
+      state: disabled
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

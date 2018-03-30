@@ -1,0 +1,12 @@
+# tasks to install ganglia gmonds on monitored host
+
+# for current implementation, the existence is checked by checking running process
+- name: Check gmond running process
+  shell: ps -ef | grep gmond | grep -v grep
+  ignore_errors: yes
+  register: result
+
+- name: Setup gmond
+  become: yes
+  include_tasks: setup_gmond.yaml
+  when: result.stdout == ""

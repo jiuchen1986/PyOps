@@ -1,0 +1,12 @@
+# tasks to install ganglia gmetad on monitoring host
+
+# for current implementation, the existence is checked by checking running process
+- name: Check gmetad running process
+  shell: ps -ef | grep gmetad | grep -v grep
+  ignore_errors: yes
+  register: result
+
+- name: Setup gmetad
+  become: yes
+  include_tasks: setup_gmetad.yaml
+  when: result.stdout == ""

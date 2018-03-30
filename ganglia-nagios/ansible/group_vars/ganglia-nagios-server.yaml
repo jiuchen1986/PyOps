@@ -1,0 +1,15 @@
+---
+
+# the buffer size for gmond's receiving udp channel
+gmond_udp_recv_buffer: 10485760
+
+# the interval polling metrics from gmond on localhost
+gmetad_localhost_poll_interval: 20
+
+# the interval polling metrics from gmonds on hosts in clusters
+gmetad_clusters_poll_interval: 20
+
+# the grid name
+gmetad_grid_name: rnd_tenant
+
+

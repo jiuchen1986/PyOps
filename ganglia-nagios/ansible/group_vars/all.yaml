@@ -1,0 +1,62 @@
+---
+# variable to describe the information of all clusters to be monitored
+cluster_info:
+  goes:  # must be identical to the name of the corresponding group
+    gmond_cluster_name: goes # the cluster name used for configuration of gmond
+    gmond_cluster_head: # the nodes that are connected by gmetad
+    - "10.210.123.40:8661"  
+    gmond_mode: multicast
+    gmond_multicast_port: 8661
+    gmond_cluster_listenrs: []  # the nodes in the cluster on which gmonds are hearing data from other gmonds, only useful when 'gmond_mode' is 'unicast'
+    gmond_cluster_deaf_yes: []  # the nodes in the cluster on which gmonds are deaf, only useful when 'gmond_mode' is 'unicast'
+  earth:
+    gmond_cluster_name: earth
+    gmond_cluster_head:
+    - "10.210.127.30:8662"
+    gmond_mode: multicast
+    gmond_multicast_port: 8662
+    gmond_cluster_listenrs: []
+    gmond_cluster_deaf_yes: []
+
+# multicast or unicast
+gmond_mode: multicast
+
+# identical across clusters
+gmond_multicast_address: 239.2.11.71
+
+# same within a cluster, and different across clusters
+gmond_multicast_port: 8661
+
+# the value of 'mute' in /etc/ganglia/gmond.conf on the monitored hosts running gmond
+gmond_mute: 'no'
+
+# the value of 'deaf' in /etc/ganglia/gmond.conf on the monitored hosts running gmond  
+gmond_deaf: 'no'
+
+# the value of 'max_udp_msg_len' in /etc/ganglia/gmond.conf on the monitored hosts running gmond
+gmond_max_udp_msg_len: 1472
+
+# the value of 'host_dmax' in /etc/ganglia/gmond.conf on the monitored hosts running gmond 
+gmond_host_dmax: 86400
+
+# the value of 'host_tmax' in /etc/ganglia/gmond.conf on the monitored hosts running gmond 
+gmond_host_tmax: 20
+
+# the value of 'cleanup_threshold' in /etc/ganglia/gmond.conf on the monitored hosts running gmond   
+gmond_cleanup_threshold: 300
+
+# the value of 'send_metadata_interval' in /etc/ganglia/gmond.conf on the monitored hosts running gmond
+gmond_send_metadata_interval: 30
+
+
+# the port gmond listening on with udp
+gmond_udp_recv_port: 8649
+
+# the port gmond sending data to with udp, should be equal to the listening port above
+gmond_udp_send_port: 8649
+
+# the buffer size for gmond's receiving udp channel
+gmond_udp_recv_buffer: 10485760
+
+# the interval that the gmond sending data
+gmond_udp_send_ttl: 1

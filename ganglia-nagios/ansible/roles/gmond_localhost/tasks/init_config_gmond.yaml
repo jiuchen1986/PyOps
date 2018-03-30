@@ -1,0 +1,11 @@
+# tasks to initialize config of gmond on the localhost
+
+- block:
+
+  - name: Copy config file for localhost
+    template:
+      src: gmond_localhost.conf.j2
+      dest: /etc/ganglia/gmond.conf
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

@@ -1,0 +1,21 @@
+
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+  - name: Add all hosts in all clusters to an ansible host group named 'clusters'
+    include_tasks: add_cluster_hosts.yaml
+    with_dict: "{{ cluster_info }}"
+    loop_control:
+      loop_var: cluster_item
+  
+- hosts: clusters
+  become: yes
+  roles:
+  - gmond
+  
+- hosts: ganglia-nagios-server
+  become: yes
+  roles:
+  - gmetad     
+  - gmond_localhost

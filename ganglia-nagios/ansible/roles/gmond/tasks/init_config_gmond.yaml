@@ -1,0 +1,12 @@
+# tasks to initialize config of gmond on the monitored hosts
+
+- block:
+
+  - name: Copy config file with multicast mode
+    template:
+      src: gmond_multicast.conf.j2
+      dest: /etc/ganglia/gmond.conf
+    when: gmond_mode == 'multicast'
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

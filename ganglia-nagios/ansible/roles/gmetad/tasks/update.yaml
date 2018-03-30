@@ -1,0 +1,25 @@
+# tasks to update gmetad configuration on monitoring hosts
+
+- block:
+    
+  - name: Configure for system requirement
+    include_tasks: config_system.yaml
+
+  - name: Backup the original config file
+    shell: mv gmetad.conf gmetad.conf.bak
+    args:
+     chdir: /etc/ganglia/    
+  
+  - name: Copy config file
+    template:
+      src: gmetad.conf.j2
+      dest: /etc/ganglia/gmetad.conf
+      
+  - name: Restart gmetad with systemd
+    systemd:
+      name: gmetad
+      state: restarted
+      enabled: yes
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

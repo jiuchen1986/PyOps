@@ -1,0 +1,11 @@
+# tasks to initialize config of gmetad on the monitored hosts
+
+- block:
+
+  - name: Copy config file
+    template:
+      src: gmetad.conf.j2
+      dest: /etc/ganglia/gmetad.conf
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

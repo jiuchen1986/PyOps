@@ -1,0 +1,15 @@
+[ganglia-nagios-server]
+localhost
+
+# all the clusters needed to be monitored needed to be listed here as different groups
+
+## include masters and workers in a cluster and specify the cluster role via 'cluster_role' variable
+[goes]
+10.210.123.[40:42]     cluster_role=master
+10.210.123.[43:50]     cluster_role=worker
+
+[earth]
+10.210.127.30          cluster_role=master
+10.210.127.[31:34]     cluster_role=worker
+
+
