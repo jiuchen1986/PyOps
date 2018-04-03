@@ -10,7 +10,9 @@
     ignore_errors: yes
   
   - name: Uninstall all gmetad related packages
-    shell: yum erase -y ganglia* 
+    yum:
+      name: 'ganglia*'
+      state: absent
 
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
 

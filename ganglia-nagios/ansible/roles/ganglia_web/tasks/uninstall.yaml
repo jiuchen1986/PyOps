@@ -1,0 +1,16 @@
+# tasks to uninstall ganglia web on the monitoring hosts
+
+- block:      
+      
+  - name: Remove ganglia web configuration file
+    file:
+      path: /etc/httpd/conf.d/ganglia.conf
+      state: absent
+  
+  - name: Uninstall all ganglia-web related packages
+    yum:
+      name: 'ganglia*'
+      state: absent
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

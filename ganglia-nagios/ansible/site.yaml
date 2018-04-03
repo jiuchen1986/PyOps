@@ -9,13 +9,14 @@
     loop_control:
       loop_var: cluster_item
   
-- hosts: clusters
-  become: yes
-  roles:
-  - gmond
-  
 - hosts: ganglia-nagios-server
   become: yes
   roles:
   - gmetad     
   - gmond_localhost
+  - ganglia_web
+  
+- hosts: clusters
+  become: yes
+  roles:
+  - gmond

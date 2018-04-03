@@ -11,4 +11,13 @@ gmetad_clusters_poll_interval: 20
 # the grid name
 gmetad_grid_name: rnd_tenant
 
+# username to login ganglia web
+ganglia_web_username: adminganglia
+
+# password to login ganglia web
+ganglia_web_password: admin
+
+# auth file for ganglia web used by Apache, full path is required
+ganglia_web_auth_file: /etc/ganglia/http.auth
+
 

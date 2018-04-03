@@ -22,7 +22,7 @@
   
   - name: Configure gmetad
     include_tasks: init_config_gmetad.yaml
-
+    
   - name: Enable and start gmetad with systemd
     systemd:
       name: gmetad

@@ -1,0 +1,14 @@
+# tasks to initialize config of ganglia-web on the monitored hosts
+
+- block:
+
+  - name: Generate username and password
+    shell: htpasswd -bc {{ ganglia_web_auth_file }} {{ ganglia_web_username }} {{ ganglia_web_password }}
+  
+  - name: Copy config file
+    template:
+      src: ganglia.conf.j2
+      dest: /etc/httpd/conf.d/ganglia.conf
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

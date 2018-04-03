@@ -1,5 +1,5 @@
 # Add hosts in one cluster ot an ansible host group named 'cluster'
-- name: Add all hosts in a cluster to an ansible host group named 'cluster
+- name: Add all hosts in a cluster to an ansible host group named 'clusters'
   add_host:
     name: "{{ item }}"
     groups: clusters

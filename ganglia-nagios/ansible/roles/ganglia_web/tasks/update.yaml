@@ -1,0 +1,28 @@
+# tasks to update ganglia web configuration on monitoring hosts
+
+- block:
+    
+  - name: Configure for system requirement
+    include_tasks: config_system.yaml
+
+  - name: Backup the original config file
+    shell: mv ganglia.conf ganglia.conf.bak
+    args:
+     chdir: /etc/httpd/conf.d    
+  
+  - name: Generate username and password
+    shell: htpasswd -bc {{ ganglia_web_auth_file }} {{ ganglia_web_username }} {{ ganglia_web_password }}
+  
+  - name: Copy config file
+    template:
+      src: ganglia.conf.j2
+      dest: /etc/httpd/conf.d/ganglia.conf
+      
+  - name: Restart httpd with systemd
+    systemd:
+      name: httpd
+      state: restarted
+      enabled: yes
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

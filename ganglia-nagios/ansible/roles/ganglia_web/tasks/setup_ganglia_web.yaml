@@ -1,4 +1,4 @@
-# tasks to setup gmond on the localhost
+# tasks to setup ganglia-web on the monitoring hosts
 
 - block:
 
@@ -12,20 +12,20 @@
       name: epel-release
       state: latest      
       
-  - name: Install gmond python (yum)
+  - name: Install ganglia-web (yum)
     yum:
-      name: ganglia-gmond-python
+      name: ganglia-web
       state: latest
     
   - name: Configure for system requirement
     include_tasks: config_system.yaml  
   
-  - name: Configure gmond
-    include_tasks: init_config_gmond.yaml
+  - name: Configure ganglia-web
+    include_tasks: init_config_ganglia_web.yaml
 
-  - name: Enable and start gmond with systemd
+  - name: Enable and start httpd with systemd
     systemd:
-      name: gmond
+      name: httpd
       state: started
       enabled: yes
 

@@ -1,0 +1,19 @@
+# tasks to install ganglia web on monitoring host
+
+- name: Ensure Apache is installed (yum)
+  yum:
+    name: httpd
+    state: latest
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+# for current implementation, the existence is checked by checking existence of ganglia.conf at /etc/httpd/conf.d
+- name: Check existence of ganglia.conf
+  find: 
+    paths: /etc/httpd/conf.d
+    patterns: 'ganglia.conf' 
+  register: result
+
+- name: Setup ganglia-web
+  become: yes
+  include_tasks: setup_ganglia_web.yaml
+  when: result.matched | int == 0
