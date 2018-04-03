@@ -3,4 +3,4 @@
   add_host:
     name: "{{ item }}"
     groups: clusters
-  with_items: "{{ groups[cluster_item.key] }}"
+  with_items: "{{ groups[cluster_item] }}"

@@ -1,7 +1,8 @@
 ---
-gmond_cluster_name: "{{ cluster_info['earth']['gmond_cluster_name'] }}"
-gmond_cluster_head: "{{ cluster_info['earth']['gmond_cluster_head'] }}"
-gmond_mode: "{{ cluster_info['earth']['gmond_mode'] }}"
-gmond_multicast_port: "{{ cluster_info['earth']['gmond_multicast_port'] }}"
-gmond_cluster_listeners: "{{ cluster_info['earth']['gmond_cluster_listeners'] }}"
-gmond_cluster_deaf_yes: "{{ cluster_info['earth']['gmond_cluster_deaf_yes'] }}"
+gmond_cluster_name: earth                     
+gmond_cluster_head:
+- "10.210.127.30:8662"  
+gmond_mode: multicast
+gmond_multicast_port: 8662
+gmond_cluster_listeners: []   
+gmond_cluster_deaf_yes: []  

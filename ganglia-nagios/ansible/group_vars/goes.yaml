@@ -1,7 +1,17 @@
 ---
-gmond_cluster_name: "{{ cluster_info['goes']['gmond_cluster_name'] }}"
-gmond_cluster_head: "{{ cluster_info['goes']['gmond_cluster_head'] }}"
-gmond_mode: "{{ cluster_info['goes']['gmond_mode'] }}"
-gmond_multicast_port: "{{ cluster_info['goes']['gmond_multicast_port'] }}"
-gmond_cluster_listeners: "{{ cluster_info['goes']['gmond_cluster_listeners'] }}"
-gmond_cluster_deaf_yes: "{{ cluster_info['goes']['gmond_cluster_deaf_yes'] }}"
+# the cluster name used for configuration of gmond, recommended to be identical to the ansible host group name
+gmond_cluster_name: goes   
+
+# the nodes that are connected by gmetad                     
+gmond_cluster_head:
+- "10.210.123.40:8661" 
+  
+gmond_mode: multicast
+
+gmond_multicast_port: 8661
+
+# the nodes in the cluster on which gmonds are hearing data from other gmonds, only useful when 'gmond_mode' is 'unicast'
+gmond_cluster_listeners: []
+
+# the nodes in the cluster on which gmonds are deaf, only useful when 'gmond_mode' is 'unicast'                  
+gmond_cluster_deaf_yes: []                   

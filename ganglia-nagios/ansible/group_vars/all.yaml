@@ -1,23 +1,4 @@
 ---
-# variable to describe the information of all clusters to be monitored
-cluster_info:
-  goes:  # must be identical to the name of the corresponding group
-    gmond_cluster_name: goes # the cluster name used for configuration of gmond
-    gmond_cluster_head: # the nodes that are connected by gmetad
-    - "10.210.123.40:8661"  
-    gmond_mode: multicast
-    gmond_multicast_port: 8661
-    gmond_cluster_listeners: []  # the nodes in the cluster on which gmonds are hearing data from other gmonds, only useful when 'gmond_mode' is 'unicast'
-    gmond_cluster_deaf_yes: []  # the nodes in the cluster on which gmonds are deaf, only useful when 'gmond_mode' is 'unicast'
-  earth:
-    gmond_cluster_name: earth
-    gmond_cluster_head:
-    - "10.210.127.30:8662"
-    gmond_mode: multicast
-    gmond_multicast_port: 8662
-    gmond_cluster_listeners: []
-    gmond_cluster_deaf_yes: []
-
 # multicast or unicast
 gmond_mode: multicast
 
