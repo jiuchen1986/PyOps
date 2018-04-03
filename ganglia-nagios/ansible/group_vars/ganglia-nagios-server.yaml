@@ -20,4 +20,7 @@ ganglia_web_password: admin
 # auth file for ganglia web used by Apache, full path is required
 ganglia_web_auth_file: /etc/ganglia/http.auth
 
+# switch of ganglia web auth system configured in /etc/ganglia/conf.php
+ganglia_web_auth_system: disabled
+
 

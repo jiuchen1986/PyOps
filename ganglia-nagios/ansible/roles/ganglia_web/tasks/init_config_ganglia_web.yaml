@@ -5,10 +5,15 @@
   - name: Generate username and password
     shell: htpasswd -bc {{ ganglia_web_auth_file }} {{ ganglia_web_username }} {{ ganglia_web_password }}
   
-  - name: Copy config file
+  - name: Copy httpd config file
     template:
       src: ganglia.conf.j2
       dest: /etc/httpd/conf.d/ganglia.conf
+      
+  - name: Copy php config file
+    template:
+      src: conf.php.j2
+      dest: /etc/ganglia/conf.php
 
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
 
