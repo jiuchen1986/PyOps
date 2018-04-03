@@ -1,4 +1,9 @@
 ---
+# a variable to list all clusters to be monitored, the name of cluster must be identical to the corresponding ansible host group name
+cluster_list:
+- goes
+- earth
+
 # multicast or unicast
 gmond_mode: multicast
 

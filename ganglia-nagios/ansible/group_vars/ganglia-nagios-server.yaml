@@ -1,10 +1,4 @@
 ---
-
-# a variable to list all clusters to be monitored, the name of cluster must be identical to the corresponding ansible host group name
-cluster_list:
-- goes
-- earth
-
 # the buffer size for gmond's receiving udp channel
 gmond_udp_recv_buffer: 10485760
 
