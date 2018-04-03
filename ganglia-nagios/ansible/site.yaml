@@ -12,11 +12,11 @@
 - hosts: ganglia-nagios-server
   become: yes
   roles:
-  - gmetad     
-  - gmond_localhost
-  - ganglia_web
+  - { role: gmetad, tags: ['gmetad'] }     
+  - { role: gmond_localhost, tags: ['gmond'] }
+  - { role: ganglia_web, tags: ['ganglia_web'] }
   
 - hosts: clusters
   become: yes
   roles:
-  - gmond
+  - { role: gmond, tags: ['gmond'] }
