@@ -16,5 +16,5 @@ istio_sidecar_inject: auto
 kubectl_path: /usr/local/bin
 
 missing_script_paths:
-- "https://raw.githubusercontent.com/istio/istio/master/install/kubernetes/webhook-create-signed-cert.sh" 
-- "https://raw.githubusercontent.com/istio/istio/master/install/kubernetes/webhook-patch-ca-bundle.sh"
+- "https://raw.githubusercontent.com/istio/istio/{{ istio_version }}/install/kubernetes/webhook-create-signed-cert.sh" 
+- "https://raw.githubusercontent.com/istio/istio/{{ istio_version }}/install/kubernetes/webhook-patch-ca-bundle.sh"
