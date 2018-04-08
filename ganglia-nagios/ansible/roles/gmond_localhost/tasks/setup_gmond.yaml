@@ -1,16 +1,11 @@
 # tasks to setup gmond on the localhost
 
-- block:
+- block:     
 
-  - name: Upgrade yum packages
+  - name: Install ganglia (yum)
     yum:
-      name: '*'
+      name: ganglia
       state: latest
-      
-  - name: Install epel release
-    yum:
-      name: epel-release
-      state: latest      
       
   - name: Install gmond python (yum)
     yum:

@@ -8,7 +8,12 @@
       state: stopped
       enabled: no
     ignore_errors: yes
-  
+
+  - name: Uninstall rrdtool package
+    yum:
+      name: rrdtool
+      state: absent
+    
   - name: Uninstall all gmetad related packages
     yum:
       name: 'ganglia*'

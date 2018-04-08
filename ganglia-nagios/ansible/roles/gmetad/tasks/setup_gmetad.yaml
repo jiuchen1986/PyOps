@@ -1,16 +1,16 @@
 # tasks to setup gmetad on the monitoring hosts
 
-- block:
+- block:    
 
-  - name: Upgrade yum packages
+  - name: Install rrdtool (yum)
     yum:
-      name: '*'
+      name: rrdtool
       state: latest
-      
-  - name: Install epel release
+  
+  - name: Install ganglia (yum)
     yum:
-      name: epel-release
-      state: latest      
+      name: ganglia
+      state: latest
       
   - name: Install gmetad (yum)
     yum:

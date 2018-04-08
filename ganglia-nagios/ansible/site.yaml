@@ -13,6 +13,10 @@
   
 - hosts: ganglia-nagios-server
   become: yes
+  pre_tasks:
+  - name: Prepare packages
+    include_tasks: packages_prepare.yaml
+    when: act == 'install'
   roles:
   - { role: gmetad, tags: ['gmetad'] }     
   - { role: gmond_localhost, tags: ['gmond'] }
@@ -20,5 +24,9 @@
   
 - hosts: clusters
   become: yes
+  pre_tasks:
+  - name: Prepare packages
+    include_tasks: packages_prepare.yaml
+    when: act == 'install'
   roles:
   - { role: gmond, tags: ['gmond'] }

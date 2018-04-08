@@ -1,0 +1,18 @@
+# tasks to install nagios core on monitoring host
+
+- name: Ensure Apache is installed (yum)
+  yum:
+    name: httpd
+    state: latest
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+# for current implementation, the existence is checked by checking running process
+- name: Check nagios running process
+  shell: ps -ef | grep nagios | grep -v grep
+  ignore_errors: yes
+  register: result
+
+- name: Setup nagios-core
+  become: yes
+  include_tasks: setup_nagios_core.yaml
+  when: result.stdout == ""
