@@ -1,3 +1,4 @@
 ansible_user: racket
 ansible_ssh_pass: password
 
+api_server_manifest: kube-apiserver.yaml
