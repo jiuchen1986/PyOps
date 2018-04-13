@@ -1,0 +1,16 @@
+# tasks to update gmetad configuration for a single cluster on monitoring hosts
+
+- block:    
+  
+  - name: Add data source of each cluster to config file
+    include_tasks: add_cluster_data_source.yaml
+    with_items: "{{ cluster_list }}"
+      
+  - name: Restart gmetad with systemd
+    systemd:
+      name: gmetad
+      state: restarted
+      enabled: yes
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

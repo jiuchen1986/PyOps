@@ -25,7 +25,7 @@
 
   environment:
     KUBECONFIG: "{{ kubeconfig_path }}"
-    PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
+    PATH: "{{ ansible_env.PATH }}:{{ kubectl_path }}"
 
 - hosts: master
   become: yes

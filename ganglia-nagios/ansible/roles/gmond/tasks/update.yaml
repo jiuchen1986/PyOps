@@ -3,18 +3,17 @@
 - block:
     
   - name: Configure for system requirement
-    include_tasks: config_system.yaml 
-
-  - name: Backup the original config file
-    shell: mv gmond.conf gmond.conf.bak
-    args:
-     chdir: /etc/ganglia/    
+    include_tasks: config_system.yaml     
   
   - name: Copy config file with multicast mode
     template:
       src: gmond_multicast.conf.j2
       dest: /etc/ganglia/gmond.conf
     when: gmond_mode == 'multicast'
+    
+  - name: Add customized gmond python modules
+    include_tasks: add_python_modules.yaml
+    with_items: "{{ gmond_python_modules }}"
 
   - name: Restart gmond with systemd
     systemd:

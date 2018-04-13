@@ -3,12 +3,7 @@
 - block:
     
   - name: Configure for system requirement
-    include_tasks: config_system.yaml
-
-  - name: Backup the original config file
-    shell: mv ganglia.conf ganglia.conf.bak
-    args:
-     chdir: /etc/httpd/conf.d    
+    include_tasks: config_system.yaml  
   
   - name: Generate username and password
     shell: htpasswd -bc {{ ganglia_web_auth_file }} {{ ganglia_web_username }} {{ ganglia_web_password }}
@@ -25,7 +20,7 @@
       regexp: 'auth_system'
       line: "$conf['auth_system'] = '{{ ganglia_web_auth_system }}'"
       insertbefore: '\?>'
-      
+  
   - name: Restart httpd with systemd
     systemd:
       name: httpd

@@ -1,4 +1,7 @@
 ---
+known_domain: ".seli.gic.ericsson.se"
+
+
 # the cluster name used for configuration of gmond, recommended to be identical to the ansible host group name
 gmond_cluster_name: goes   
 

@@ -4,11 +4,6 @@
     
   - name: Configure for system requirement
     include_tasks: config_system.yaml  
-  
-  - name: Copy config file for localhost
-    template:
-      src: gmond_localhost.conf.j2
-      dest: /etc/ganglia/gmond.conf
 
   - name: Restart gmond with systemd
     systemd:

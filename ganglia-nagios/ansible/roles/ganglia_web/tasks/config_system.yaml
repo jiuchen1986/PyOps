@@ -1,4 +1,4 @@
-# tasks to config the system to meet requirements by configuration of gmond
+# tasks to config the system to meet requirements by configuration of ganglia web
 
 - block:
 

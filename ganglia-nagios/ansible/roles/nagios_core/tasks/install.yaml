@@ -8,7 +8,7 @@
 
 # for current implementation, the existence is checked by checking running process
 - name: Check nagios running process
-  shell: ps -ef | grep nagios | grep -v grep
+  shell: ps -ef | grep nagios | grep -v grep | grep -v ansible
   ignore_errors: yes
   register: result
 

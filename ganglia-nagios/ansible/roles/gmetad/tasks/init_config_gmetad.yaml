@@ -1,4 +1,4 @@
-# tasks to initialize config of gmetad on the monitored hosts
+# tasks to initialize config of gmetad on the monitoring host
 
 - block:
 

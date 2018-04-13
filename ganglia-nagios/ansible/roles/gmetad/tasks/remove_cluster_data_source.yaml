@@ -1,0 +1,15 @@
+# tasks to remove data source of each cluster from config file
+
+- block:
+    
+  - set_fact:
+      member_host: "{{ groups[item][0] }}"
+      
+  - name: Remove cluster data source
+    lineinfile:
+      path: /etc/ganglia/gmetad.conf
+      regexp: "^data_source \"{{ hostvars[member_host]['gmond_cluster_name'] }}\" "
+      state: absent
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

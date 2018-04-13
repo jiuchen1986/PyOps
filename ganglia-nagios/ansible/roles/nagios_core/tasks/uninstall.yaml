@@ -1,20 +1,27 @@
-# tasks to uninstall ganglia web on the monitoring hosts
+# tasks to uninstall nagios core on the monitoring hosts
 
 - block:      
       
-  - name: Remove ganglia web configuration file
+  - name: Remove nagios web configuration file
     file:
-      path: /etc/httpd/conf.d/ganglia.conf
+      path: /etc/httpd/conf.d/nagios.conf
       state: absent
+      
+  - name: Stop nagios core service with systemd
+    systemd:
+      name: nagios
+      state: stopped
+      enabled: no
+    ignore_errors: yes
+    
+  - name: Clear conf.d
+    shell: rm -rf *
+    args:
+      chdir: /etc/nagios/conf.d/
  
-  - name: Uninstall rrdtool package
+  - name: Uninstall all nagios core related packages
     yum:
-      name: rrdtool
-      state: absent
- 
-  - name: Uninstall all ganglia-web related packages
-    yum:
-      name: 'ganglia*'
+      name: 'nagios*'
       state: absent
 
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'

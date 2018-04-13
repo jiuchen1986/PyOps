@@ -1,4 +1,5 @@
 ---
+known_domain: ""
 gmond_cluster_name: earth                     
 gmond_cluster_head:
 - "10.210.127.30:8662"  

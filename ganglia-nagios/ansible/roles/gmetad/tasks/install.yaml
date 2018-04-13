@@ -2,7 +2,7 @@
 
 # for current implementation, the existence is checked by checking running process
 - name: Check gmetad running process
-  shell: ps -ef | grep gmetad | grep -v grep
+  shell: ps -ef | grep gmetad | grep -v grep | grep -v ansible
   ignore_errors: yes
   register: result
 

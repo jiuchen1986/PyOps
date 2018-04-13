@@ -17,6 +17,10 @@
   
   - name: Configure gmond
     include_tasks: init_config_gmond.yaml
+    
+  - name: Add customized gmond python modules
+    include_tasks: add_python_modules.yaml
+    with_items: "{{ gmond_python_modules }}"
 
   - name: Enable and start gmond with systemd
     systemd:

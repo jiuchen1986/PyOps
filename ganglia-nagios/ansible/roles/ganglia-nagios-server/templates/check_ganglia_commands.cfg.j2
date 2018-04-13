@@ -1,0 +1,11 @@
+# commands for checking metrics of ganglia, both the warning and the critical values are supported
+
+define command {
+  command_name check_ganglia_metric
+  command_line /bin/sh {{ nagios_check_ganglia_plugins_path }}/check_multiple_metrics_warn.sh host=$HOSTNAME$ checks='$ARG1$'
+}
+
+define command {
+  command_name check_ganglia_heartbeat
+  command_line /bin/sh {{ nagios_check_ganglia_plugins_path }}/check_heartbeat.sh host=$HOSTNAME$ threshold=$ARG1$
+}

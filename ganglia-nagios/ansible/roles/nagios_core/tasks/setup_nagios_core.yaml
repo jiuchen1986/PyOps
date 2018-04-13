@@ -1,0 +1,28 @@
+# tasks to setup nagios core on the monitoring hosts
+
+- block:
+
+  - name: Install nagios core (yum)
+    yum:
+      name: nagios
+      state: latest      
+
+  - name: Install nagios plugins (yum)
+    yum:
+      name: nagios-plugins-all
+      state: latest
+    
+  - name: Configure for system requirement
+    include_tasks: config_system.yaml  
+  
+  - name: Configure nagios core
+    include_tasks: init_config_nagios_core.yaml
+    
+  - name: Enable and start nagios with systemd
+    systemd:
+      name: nagios
+      state: started
+      enabled: yes
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

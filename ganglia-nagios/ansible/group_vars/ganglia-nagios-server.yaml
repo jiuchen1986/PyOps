@@ -24,3 +24,79 @@ ganglia_web_auth_file: /etc/ganglia/http.auth
 ganglia_web_auth_system: disabled
 
 
+
+
+
+# name of admin user for nagios
+nagios_admin_username: adminnagios
+
+# email address for admin user
+nagios_admin_email: xin.e.chen@ericsson.com
+
+# password for admin user to login to nagios web
+nagios_web_admin_password: admin
+
+# auth file for nagios web used by Apache, full path is required
+nagios_web_auth_file: /etc/nagios/http.auth
+
+# contacts information used in nagios
+nagios_contacts:
+- contactgroup_name: admins
+  alias: Nagios Administrators
+  members:
+  - contact_name: "{{ nagios_admin_username }}"
+    alias: Nagios Admin
+    email: "{{ nagios_admin_email }}"
+    service_notification_options: w,u,c,r,f,s
+    host_notification_options: d,u,r,f,s
+  - contact_name: hanzhe
+    alias: Hanzhe Chen
+    email: hanzhe.chen@ericsson.com
+    service_notification_options: u,c,r
+    host_notification_options: d,u,r
+
+
+
+# path to the plugins used by nagios to check on ganglia
+nagios_check_ganglia_plugins_path: /usr/share/ganglia/nagios/
+
+# interval checking ganglia metric by nagios, unit is 60s, can be less than 1
+nagios_check_ganglia_check_interval: 3
+
+# interval sending notification by nagios, unit is 60s, can be less than 1
+nagios_check_ganglia_notification_interval: 120
+
+# maximal time losing heartbeat before off a host
+nagios_check_ganglia_heartbeat_threshold: 60
+
+# ganglia metrics checked by nagios with warning and critical values
+nagios_check_ganglia_metrics:
+- name: load_one
+  oper: more
+  warn_val: 5
+  crit_val: 7
+- name: cpu_idle
+  oper: less
+  warn_val: 50
+  crit_val: 10
+- name: cpu_wio
+  oper: more
+  warn_val: 50
+  crit_val: 90
+- name: disk_free_percent_rootfs
+  oper: less
+  warn_val: 40
+  crit_val: 10
+- name: mem_free
+  oper: less
+  warn_val: 3
+  crit_val: 1
+- name: service_status_kubelet
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+- name: service_status_docker
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+    

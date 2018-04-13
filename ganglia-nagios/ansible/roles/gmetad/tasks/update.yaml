@@ -3,12 +3,7 @@
 - block:
     
   - name: Configure for system requirement
-    include_tasks: config_system.yaml
-
-  - name: Backup the original config file
-    shell: mv gmetad.conf gmetad.conf.bak
-    args:
-     chdir: /etc/ganglia/    
+    include_tasks: config_system.yaml    
   
   - name: Copy config file
     template:

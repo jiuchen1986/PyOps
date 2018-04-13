@@ -1,4 +1,3 @@
-
 - hosts: localhost
   tags:
   - inventory
@@ -7,6 +6,8 @@
   tasks:
   - name: Add all hosts in all clusters to an ansible host group named 'clusters'
     include_tasks: add_cluster_hosts.yaml
+    tags:
+    - prepare
     with_items: "{{ cluster_list }}"
     loop_control:
       loop_var: cluster_item
@@ -16,17 +17,37 @@
   pre_tasks:
   - name: Prepare packages
     include_tasks: packages_prepare.yaml
+    tags:
+    - gmetad
+    - gmond
+    - ganglia_web
+    - nagios_core
     when: act == 'install'
   roles:
   - { role: gmetad, tags: ['gmetad'] }     
   - { role: gmond_localhost, tags: ['gmond'] }
   - { role: ganglia_web, tags: ['ganglia_web'] }
+  - { role: nagios_core, tags: ['nagios_core'] }
   
 - hosts: clusters
+  gather_facts: no
   become: yes
   pre_tasks:
   - name: Prepare packages
     include_tasks: packages_prepare.yaml
-    when: act == 'install'
+    tags:
+    - gmond
+    when: act == 'install' or act == 'cluster_install'
   roles:
   - { role: gmond, tags: ['gmond'] }
+  
+- hosts: clusters
+  gather_facts: no
+  become: yes
+  roles:
+  - { role: ganglia-nagios-client, tags: ['ganglia_nagios'] }
+  
+- hosts: ganglia-nagios-server
+  become: yes
+  roles:
+  - { role: ganglia-nagios-server, tags: ['ganglia_nagios'] }

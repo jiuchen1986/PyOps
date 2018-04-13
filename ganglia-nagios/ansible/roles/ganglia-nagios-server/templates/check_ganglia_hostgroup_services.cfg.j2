@@ -1,0 +1,29 @@
+# host groups, host template for hosts in a group, and related services definitions
+
+define hostgroup {
+  hostgroup_name {{ cluster_item }}
+  alias {{ cluster_item }} cluster
+}
+
+define host {
+  name {{ cluster_item }}-host
+  use linux-server
+  hostgroups {{ cluster_item }}
+  register 0
+}
+
+define service {
+  use check-ganglia-heartbeat
+  hostgroup_name {{ cluster_item }}
+  service_description {{ cluster_item }}-check-ganglia-heartbeat
+}
+
+{% for metric in nagios_check_ganglia_metrics %}
+define service {
+  use check-ganglia-{{ metric.name }}
+  hostgroup_name {{ cluster_item }}
+  service_description {{ cluster_item }}-check-ganglia-{{ metric.name }}
+}
+
+{% endfor %}
+

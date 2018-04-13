@@ -1,0 +1,11 @@
+# tasks to define nagios commands used for checking on ganglia
+
+- block:
+
+  - name: Generate config files for commands definitions
+    template:
+      src: check_ganglia_commands.cfg.j2
+      dest: /etc/nagios/conf.d/check_ganglia_commands.cfg
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

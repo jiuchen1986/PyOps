@@ -1,0 +1,56 @@
+###############################################################################
+# CONTACTS.CFG - SAMPLE CONTACT/CONTACTGROUP DEFINITIONS
+#
+#
+# NOTES: This config file provides you with some example contact and contact
+#        group definitions that you can reference in host and service
+#        definitions.
+#       
+#        You don't need to keep these definitions in a separate file from your
+#        other object definitions.  This has been done just to make things
+#        easier to understand.
+#
+###############################################################################
+
+
+
+###############################################################################
+###############################################################################
+#
+# CONTACTS
+#
+###############################################################################
+###############################################################################
+
+
+{% for group in nagios_contacts %}
+{% for user in group.members %}
+define contact{
+        contact_name            {{ user.contact_name }}	
+	    use				        generic-contact		
+        alias                   {{ user.alias }}		
+        service_notification_options   {{ user.service_notification_options }}
+        host_notification_options      {{ user.host_notification_options }}
+        email                   {{ user.email }}
+        }
+
+{% endfor %}
+{% endfor %}
+
+
+###############################################################################
+###############################################################################
+#
+# CONTACT GROUPS
+#
+###############################################################################
+###############################################################################
+
+{% for group in nagios_contacts %}
+define contactgroup{
+        contactgroup_name       {{ group.contactgroup_name }}
+        alias                   {{ group.alias }}
+        members                 {{ group.members | map(attribute='contact_name') | join(',') }}
+        }
+
+{% endfor %}

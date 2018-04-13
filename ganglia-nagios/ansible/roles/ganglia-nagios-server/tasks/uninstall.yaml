@@ -1,0 +1,5 @@
+---
+- name: Remove all the config files
+  shell: rm -rf *
+  args:
+    chdir: /etc/nagios/conf.d/

@@ -1,0 +1,35 @@
+# tasks to initialize config of nagios core on the monitoring host
+
+- block:
+
+  - name: Configure contacts
+    template:
+      src: contacts.cfg.j2
+      dest: /etc/nagios/objects/contacts.cfg
+      
+  - name: Clear conf.d
+    shell: rm -rf *
+    args:
+      chdir: /etc/nagios/conf.d/
+  
+  - name: Generate username and password for nagios web
+    shell: htpasswd -bc {{ nagios_web_auth_file }} {{ nagios_admin_username }} {{ nagios_web_admin_password }}
+  
+  - name: Copy httpd config file
+    template:
+      src: nagios.conf.j2
+      dest: /etc/httpd/conf.d/nagios.conf
+      
+  - name: Copy cgi config file
+    template:
+      src: cgi.cfg.j2
+      dest: /etc/nagios/cgi.cfg
+      
+  - name: Enable and restart httpd with systemd
+    systemd:
+      name: httpd
+      state: restarted
+      enabled: yes
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

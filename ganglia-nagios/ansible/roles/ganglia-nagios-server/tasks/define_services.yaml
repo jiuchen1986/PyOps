@@ -1,0 +1,11 @@
+# tasks to define common nagios checking services used for checking on ganglia
+
+- block:
+
+  - name: Generate config files for services definitions
+    template:
+      src: check_ganglia_services.cfg.j2
+      dest: /etc/nagios/conf.d/check_ganglia_services.cfg
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+

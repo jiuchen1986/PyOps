@@ -1,0 +1,7 @@
+---
+- include_tasks: "define_hostgroups_services.yaml"
+
+- name: Restart nagios with systemd
+  systemd:
+    name: nagios
+    state: restarted

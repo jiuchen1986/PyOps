@@ -1,30 +1,33 @@
-# tasks to update ganglia web configuration on monitoring hosts
+# tasks to update nagios core configuration on monitoring hosts
 
 - block:
     
   - name: Configure for system requirement
-    include_tasks: config_system.yaml
-
-  - name: Backup the original config file
-    shell: mv ganglia.conf ganglia.conf.bak
-    args:
-     chdir: /etc/httpd/conf.d    
+    include_tasks: config_system.yaml     
   
-  - name: Generate username and password
-    shell: htpasswd -bc {{ ganglia_web_auth_file }} {{ ganglia_web_username }} {{ ganglia_web_password }}
+  - name: Configure contacts
+    template:
+      src: contacts.cfg.j2
+      dest: /etc/nagios/objects/contacts.cfg
+  
+  - name: Generate username and password for nagios web
+    shell: htpasswd -bc {{ nagios_web_auth_file }} {{ nagios_admin_username }} {{ nagios_web_admin_password }}
   
   - name: Copy httpd config file
     template:
-      src: ganglia.conf.j2
-      dest: /etc/httpd/conf.d/ganglia.conf
+      src: nagios.conf.j2
+      dest: /etc/httpd/conf.d/nagios.conf
       
-  - name: Modify php config file
-    lineinfile:
-      path: /etc/ganglia/conf.php
-      state: present
-      regexp: 'auth_system'
-      line: "$conf['auth_system'] = '{{ ganglia_web_auth_system }}'"
-      insertbefore: '\?>'
+  - name: Copy cgi config file
+    template:
+      src: cgi.cfg.j2
+      dest: /etc/nagios/cgi.cfg
+      
+  - name: Restart nagios core with systemd
+    systemd:
+      name: nagios
+      state: restarted
+      enabled: yes
       
   - name: Restart httpd with systemd
     systemd:

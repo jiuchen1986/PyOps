@@ -1,0 +1,14 @@
+---
+- include_tasks: "{{ act }}.yaml"
+- block:
+  - include_tasks: "define_commands.yaml"
+  - include_tasks: "define_services.yaml"
+  - include_tasks: "define_hostgroups_services.yaml"
+  when: act != 'uninstall' and act != 'cluster_uninstall'
+  
+- name: Remove the config files relate to clusters
+  shell: rm -rf {{ item }}*
+  args:
+    chdir: /etc/nagios/conf.d/
+  with_items: "{{ cluster_list }}"
+  when: act == 'cluster_uninstall'

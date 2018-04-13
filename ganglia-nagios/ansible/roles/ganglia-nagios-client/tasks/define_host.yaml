@@ -1,0 +1,39 @@
+# tasks to define a host object representing the current host and add to the related cfg file
+
+- block:
+  
+  - name: Get hostname by shell
+    shell: hostname
+    register: result
+    when: ansible_not_get_facts
+  
+  - name: Create facts when not gathered
+    set_fact:
+      ansible_fqdn: "{{ result.stdout }}{{ known_domain }}"
+    when: ansible_not_get_facts
+  
+  - name: Remove the original cfg file
+    delegate_to: "{{ outer_item }}"
+    file:
+      path: /etc/nagios/conf.d/{{ item }}_hosts.cfg
+      state: absent        
+    with_items: "{{ cluster_list }}"
+    when: "item in group_names"
+  
+  - name: Define host and add to cfg file
+    delegate_to: "{{ outer_item }}"
+    blockinfile:
+      path: /etc/nagios/conf.d/{{ item }}_hosts.cfg
+      create: yes
+      block: |
+        define host {
+          use {{ item }}-host
+          host_name {{ ansible_fqdn }}
+          address {{ inventory_hostname }}
+        }
+      marker: "# {mark} add host {{ ansible_fqdn }}"        
+    with_items: "{{ cluster_list }}"
+    when: "item in group_names"
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
