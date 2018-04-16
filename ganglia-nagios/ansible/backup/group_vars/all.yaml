@@ -19,9 +19,6 @@ gmond_mode: multicast
 # identical across clusters
 gmond_multicast_address: 239.2.11.71
 
-# same within a cluster, and different across clusters
-gmond_multicast_port: 8661
-
 # the value of 'mute' in /etc/ganglia/gmond.conf on the monitored hosts running gmond
 gmond_mute: 'no'
 
