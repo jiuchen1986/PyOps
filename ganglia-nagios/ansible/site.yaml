@@ -4,13 +4,23 @@
   connection: local
   gather_facts: no
   tasks:
+  - name: Overwrite the cluster_list when 'single_cluster' is defined
+    set_fact:
+      cluster_list:
+      - "{{ single_cluster }}"
+    when: single_cluster is defined
+  - name: Create host group for hosts in the cluster when 'single_cluster' is defined
+    include_tasks: add_single_cluster_hosts.yaml
+    when: single_cluster is defined
   - name: Add all hosts in all clusters to an ansible host group named 'clusters'
     include_tasks: add_cluster_hosts.yaml
-    tags:
-    - prepare
     with_items: "{{ cluster_list }}"
     loop_control:
       loop_var: cluster_item
+  # - name: Dump hosts in 'clusters' group
+    # debug:
+      # msg: "host: {{ item }}, ansible_host: {{ hostvars[item]['ansible_host'] }}, cluster_role: {{ hostvars[item]['cluster_role'] }}, head: {{ hostvars[item]['gmond_cluster_head'] }}"
+    # with_items: "{{ groups['clusters'] }}"
   
 - hosts: ganglia-nagios-server
   become: yes
@@ -30,7 +40,7 @@
   - { role: nagios_core, tags: ['nagios_core'] }
   
 - hosts: clusters
-  gather_facts: no
+  gather_facts: yes
   become: yes
   pre_tasks:
   - name: Prepare packages
@@ -42,7 +52,7 @@
   - { role: gmond, tags: ['gmond'] }
   
 - hosts: clusters
-  gather_facts: no
+  gather_facts: yes
   become: yes
   roles:
   - { role: ganglia-nagios-client, tags: ['ganglia_nagios'] }

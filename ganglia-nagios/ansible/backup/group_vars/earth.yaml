@@ -1,0 +1,9 @@
+---
+known_domain: ""
+gmond_cluster_name: earth                     
+gmond_cluster_head:
+- "10.210.127.30:8662"  
+gmond_mode: multicast
+gmond_multicast_port: 8662
+gmond_cluster_listeners: []   
+gmond_cluster_deaf_yes: []  

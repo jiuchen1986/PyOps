@@ -1,0 +1,5 @@
+[calipso]
+10.210.123.[90:92]     cluster_role=master
+10.210.123.[93:99]     cluster_role=worker
+
+

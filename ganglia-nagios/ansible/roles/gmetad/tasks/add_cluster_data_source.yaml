@@ -1,11 +1,11 @@
-# tasks to remove data source of each cluster from config file
+# tasks to add data source of each cluster from config file
 
 - block:
     
   - set_fact:
       member_host: "{{ groups[item][0] }}"
       
-  - name: Remove cluster data source
+  - name: Add cluster data source
     lineinfile:
       path: /etc/ganglia/gmetad.conf
       insertafter: "^data_source"

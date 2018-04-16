@@ -1,0 +1,53 @@
+# Add hosts in a cluster to an ansible host group named by the value of 'single_cluster'
+- name: Add master hosts
+  add_host:
+    name: "{{ hostvars[item]['ansible_host'] }}"
+    ansible_host: "{{ hostvars[item]['ansible_host'] }}"
+    gmond_cluster_name: "{{ single_cluster }}"
+    gmond_cluster_head:
+    - "{{ gmond_cluster_head }}"
+    gmond_mode: multicast
+    gmond_multicast_port: "{{ gmond_multicast_port }}"
+    cluster_role: master
+    groups: "{{ single_cluster }}"
+  with_items: "{{ groups['master'] }}"
+  
+- name: Add etcd hosts
+  add_host:
+    name: "{{ hostvars[item]['ansible_host'] }}"
+    ansible_host: "{{ hostvars[item]['ansible_host'] }}"
+    gmond_cluster_name: "{{ single_cluster }}"
+    gmond_cluster_head:
+    - "{{ gmond_cluster_head }}"
+    gmond_mode: multicast
+    gmond_multicast_port: "{{ gmond_multicast_port }}"
+    cluster_role: etcd
+    groups: "{{ single_cluster }}"
+  with_items: "{{ groups['etcd'] }}"
+  when: item not in groups['master']
+
+- name: Add worker hosts
+  add_host:
+    name: "{{ hostvars[item]['ansible_host'] }}"
+    ansible_host: "{{ hostvars[item]['ansible_host'] }}"
+    gmond_cluster_name: "{{ single_cluster }}"
+    gmond_cluster_head:
+    - "{{ gmond_cluster_head }}"
+    gmond_mode: multicast
+    gmond_multicast_port: "{{ gmond_multicast_port }}"
+    cluster_role: worker
+    groups: "{{ single_cluster }}"
+  with_items: "{{ groups['worker'] }}"
+  
+- name: Add ingress lb hosts
+  add_host:
+    name: "{{ hostvars[item]['ansible_host'] }}"
+    ansible_host: "{{ hostvars[item]['ansible_host'] }}"
+    gmond_cluster_name: "{{ single_cluster }}"
+    gmond_cluster_head:
+    - "{{ gmond_cluster_head }}"
+    gmond_mode: multicast
+    gmond_multicast_port: "{{ gmond_multicast_port }}"
+    cluster_role: ingress_lb
+    groups: "{{ single_cluster }}"
+  with_items: "{{ groups['ingress_lb'] }}"
