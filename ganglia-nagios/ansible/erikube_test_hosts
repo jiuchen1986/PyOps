@@ -18,6 +18,9 @@ node5
 
 [ingress_lb]
 
+[ganglia-nagios-server]
+localhost
+
 [all:vars]
 single_cluster=earth
 gmond_cluster_head="10.210.127.30:8662"
