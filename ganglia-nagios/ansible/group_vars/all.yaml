@@ -1,6 +1,6 @@
 ---
-ansible_not_get_facts: no
-ansible_distribution: CentOS
+# ansible_not_get_facts: no
+# ansible_distribution: CentOS
 
 # a variable to list all clusters to be monitored, the name of cluster must be identical to the corresponding ansible host group name
 cluster_list:

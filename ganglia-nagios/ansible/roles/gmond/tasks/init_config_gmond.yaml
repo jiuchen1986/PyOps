@@ -8,5 +8,5 @@
       dest: /etc/ganglia/gmond.conf
     when: gmond_mode == 'multicast'
 
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 

@@ -8,5 +8,5 @@
     loop_control:
       loop_var: outer_item
 
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 

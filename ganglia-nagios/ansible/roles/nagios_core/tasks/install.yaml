@@ -4,7 +4,7 @@
   yum:
     name: httpd
     state: latest
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 
 # for current implementation, the existence is checked by checking running process
 - name: Check nagios running process

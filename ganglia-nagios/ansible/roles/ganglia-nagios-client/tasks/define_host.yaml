@@ -5,12 +5,12 @@
   - name: Get hostname by shell
     shell: hostname
     register: result
-    when: ansible_not_get_facts
+    when: ansible_not_get_facts | default('no') | bool
   
   - name: Create facts when not gathered
     set_fact:
       ansible_fqdn: "{{ result.stdout }}{{ known_domain }}"
-    when: ansible_not_get_facts
+    when: ansible_not_get_facts | default('no') | bool
   
   - name: Remove the original cfg file
     delegate_to: "{{ outer_item }}"
@@ -35,5 +35,5 @@
     with_items: "{{ cluster_list }}"
     when: "item in group_names"
 
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 

@@ -23,5 +23,5 @@
   - name: Configure ganglia-web
     include_tasks: init_config_ganglia_web.yaml
 
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 

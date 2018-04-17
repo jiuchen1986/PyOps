@@ -12,5 +12,5 @@
       line: "data_source \"{{ hostvars[member_host]['gmond_cluster_name'] }}\" {{ gmetad_clusters_poll_interval }} {{ hostvars[member_host]['gmond_cluster_head'] | join(' ') }}"
       state: present
 
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 

@@ -29,5 +29,5 @@
       line: "$conf['auth_system'] = '{{ ganglia_web_auth_system }}'"
       insertbefore: '\?>'
 
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 
