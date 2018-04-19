@@ -1,4 +1,5 @@
 - name: Wait api server restarts
+  become: yes
   shell: docker ps | grep apiserver | grep -v pause
   register: result
   until: result.stdout != ""
