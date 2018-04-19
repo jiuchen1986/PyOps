@@ -35,7 +35,7 @@
     when: remove_mut_flag
     
   - name: Clean 'ValidatingAdmissionWebhook' addmission control flags
-    shell: sed -i 's/ValidatingAdmissionWebhook//' {{ api_server_manifest }}
+    shell: sed -i 's/ValidatingAdmissionWebhook,//' {{ api_server_manifest }}
     when: remove_val_flag
     notify:
     - Wait api server restarts
