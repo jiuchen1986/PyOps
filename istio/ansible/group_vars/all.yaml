@@ -1,4 +1,38 @@
-ansible_user: racket
-ansible_ssh_pass: password
+istio_version: 0.7.1
+root_dir: /usr/local
+# do not change this
+istio_dir: "{{ root_dir }}/istio-{{ istio_version }}"
 
-api_server_manifest: kube-apiserver.yaml
+# istio or istio-auth
+istio_choice: istio
+
+# auto or manual
+istio_sidecar_inject: auto
+
+# indicate how to get the kubectl script and the kubeconfig file
+# local: files are on istio installer locating at to where the kubectl_path and kubeconfig_path indicate
+# fetch: files are on a remote host locating at to where the remote_kubectl_path and remote_kubeconfig_path indicate, and will be copyed to the istio installer
+# url:   files can be downloaded from urls, which are descirbed by the url_kubectl and the url_kubeconfig, and saved to the istio installer
+file_get: local
+
+# path to the directory where the kubectl executable script locates or to be saved when it is fetched from remote
+kubectl_path: /usr/local/bin
+# path to the kubeconfig file for the kubectl locates or to be saved when it is fetched from remote
+kubeconfig_path: /etc/kubernetes/admin.conf
+
+# a remote host keeping the kubectl and the kubeconfig files
+remote_file_host: c01-h01-master.maas
+# user name to login to the remote host with ssh
+remote_file_host_user: centos
+# path to the directory where the kubectl executable script locates at a remote host
+remote_kubectl_path: /usr/local/bin
+# path to the kubeconfig file for the kubectl locates at a remote host
+remote_kubeconfig_path: /etc/kubernetes/admin.conf
+
+# url where the kubectl executable script can be downloaded
+url_kubectl: http://example.com/kubectl
+# url where the kubeconfig file for the kubectl can be downloaded
+url_kubeconfig: http://example.com/kubeconfig
+
+# path to the manifest file of API server on the master nodes
+api_server_manifest: /etc/kubernetes/manifests/kube-apiserver.yaml

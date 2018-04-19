@@ -1,12 +1,9 @@
-[all]
-10.134.5.12
-10.134.5.13
-10.134.5.14
-
 [master]
-10.134.5.12
-10.134.5.13
-10.134.5.14
+c01-h01-master.maas
 
-# [istioinstaller]
-# 10.134.5.12
+[master:vars]
+ansible_user=centos
+# ansible_ssh_pass=password
+
+[istioinstaller]
+

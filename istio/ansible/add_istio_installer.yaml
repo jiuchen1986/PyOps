@@ -1,0 +1,5 @@
+# task to add the first master node to the istioinstaller host group
+- name: Add first master to istioinstaller group
+  add_host:
+    name: "{{ groups['master'][0] }}"
+    groups: istioinstaller

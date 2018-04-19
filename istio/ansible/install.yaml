@@ -3,20 +3,20 @@
   gather_facts: no
   connection: local
   tasks:
-  - name: Add first master to istioinstaller group
-    add_host:
-      name: "{{ groups['master'][0] }}"
-      groups: istioinstaller
+  - include_tasks: add_istio_installer.yaml
+    when: "'istioinstaller' not in groups or groups['istioinstaller'] | length == 0"
   
 - hosts: master
   roles:
   - apiserver
 
 - hosts: istioinstaller
+  become: yes
+  tasks:
+  - include_tasks: get_kubectl_and_kubeconfig.yaml
+    when: file_get != 'local'
   roles:
   - istioinstaller
   environment:
     KUBECONFIG: "{{ kubeconfig_path }}"
     PATH: "{{ ansible_env.PATH }}:{{ kubectl_path }}"
-  
-     

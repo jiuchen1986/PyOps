@@ -3,10 +3,8 @@
   gather_facts: no
   connection: local
   tasks:
-  - name: Add first master to istioinstaller group
-    add_host:
-      name: "{{ groups['master'][0] }}"
-      groups: istioinstaller
+  - include_tasks: add_istio_installer.yaml
+    when: "'istioinstaller' not in groups or groups['istioinstaller'] | length == 0"
 
 - hosts: istioinstaller
   become: yes
@@ -33,11 +31,11 @@
   - clean_vars.yaml
   tasks:
   - name: Clean 'MutatingAdmissionWebhook' addmission control flags
-    shell: sed -i 's/MutatingAdmissionWebhook,//' /etc/kubernetes/manifests/{{ api_server_manifest }}
+    shell: sed -i 's/MutatingAdmissionWebhook,//' {{ api_server_manifest }}
     when: remove_mut_flag
     
   - name: Clean 'ValidatingAdmissionWebhook' addmission control flags
-    shell: sed -i 's/ValidatingAdmissionWebhook//' /etc/kubernetes/manifests/{{ api_server_manifest }}
+    shell: sed -i 's/ValidatingAdmissionWebhook//' {{ api_server_manifest }}
     when: remove_val_flag
     notify:
     - Wait api server restarts

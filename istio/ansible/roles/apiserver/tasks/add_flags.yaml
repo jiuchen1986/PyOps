@@ -5,24 +5,24 @@
 # And 'MutatingAdmissionWebhook' and 'ValidatingAdmissionWebhook' usually are placed in the front of 'ResourceQuota'.
 # Therefore, this play will just fail if 'ResourceQuota' is absent.
 - name: Check existence of 'ResourceQuota'
-  shell: grep 'ResourceQuota' /etc/kubernetes/manifests/{{ api_server_manifest }}
+  shell: grep 'ResourceQuota' {{ api_server_manifest }}
 
 - name: Check existence of 'MutatingAdmissionWebhook'
-  shell: grep 'MutatingAdmissionWebhook' /etc/kubernetes/manifests/{{ api_server_manifest }}
+  shell: grep 'MutatingAdmissionWebhook' {{ api_server_manifest }}
   ignore_errors: yes
   register: check_mut_result
 
 - name: Add 'MutatingAdmissionWebhook'
-  shell: sed -i 's/ResourceQuota/MutatingAdmissionWebhook,ResourceQuota/' /etc/kubernetes/manifests/{{ api_server_manifest }}
+  shell: sed -i 's/ResourceQuota/MutatingAdmissionWebhook,ResourceQuota/' {{ api_server_manifest }}
   when: check_mut_result.stdout == ""
   
 - name: Check existence of 'ValidatingAdmissionWebhook'
-  shell: grep 'ValidatingAdmissionWebhook' /etc/kubernetes/manifests/{{ api_server_manifest }}
+  shell: grep 'ValidatingAdmissionWebhook' {{ api_server_manifest }}
   ignore_errors: yes
   register: check_val_result
 
 - name: Add 'ValidatingAdmissionWebhook'
-  shell: sed -i 's/ResourceQuota/ValidatingAdmissionWebhook,ResourceQuota/' /etc/kubernetes/manifests/{{ api_server_manifest }}
+  shell: sed -i 's/ResourceQuota/ValidatingAdmissionWebhook,ResourceQuota/' {{ api_server_manifest }}
   when: check_val_result.stdout == ""
   notify:
   - Wait api server restarts
