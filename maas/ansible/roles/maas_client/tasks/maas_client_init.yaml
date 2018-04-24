@@ -8,7 +8,7 @@
   with_items:
   - gcc
   - unzip  
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Redhat'
   
 - name: Install common tools (apt)
   become: yes
@@ -37,7 +37,7 @@
     - readline-devel
     - sqlite-devel
     - zlib-devel  
-    when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+    when: ansible_distribution == 'CentOS' or ansible_distribution == 'Redhat'
 
   - name: Install python 3.5 dependencies (apt)
     become: yes
