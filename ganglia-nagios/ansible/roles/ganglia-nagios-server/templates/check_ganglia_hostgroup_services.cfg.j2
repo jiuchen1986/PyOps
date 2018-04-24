@@ -5,10 +5,24 @@ define hostgroup {
   alias {{ cluster_item }} cluster
 }
 
+# a host group only containing the master nodes of a cluster
+define hostgroup {
+  hostgroup_name {{ cluster_item }}-master
+  alias {{ cluster_item }} cluster masters
+}
+
 define host {
   name {{ cluster_item }}-host
   use linux-server
   hostgroups {{ cluster_item }}
+  register 0
+}
+
+# host representing the master node
+define host {
+  name {{ cluster_item }}-master-host
+  use linux-server
+  hostgroups {{ cluster_item }},{{ cluster_item }}-master
   register 0
 }
 
@@ -19,11 +33,23 @@ define service {
 }
 
 {% for metric in nagios_check_ganglia_metrics %}
+  {% if 'cluster_role' in metric %}
+    {% set metric_cluster_role = metric.cluster_role %}
+  {% endif %}
+  {% if metric_cluster_role|default('') == 'master' %}
+define service {
+  use check-ganglia-{{ metric.name }}
+  hostgroup_name {{ cluster_item }}-master
+  service_description {{ cluster_item }}-check-ganglia-{{ metric.name }}
+}
+
+  {% else %}
 define service {
   use check-ganglia-{{ metric.name }}
   hostgroup_name {{ cluster_item }}
   service_description {{ cluster_item }}-check-ganglia-{{ metric.name }}
 }
 
+  {% endif %}
 {% endfor %}
 

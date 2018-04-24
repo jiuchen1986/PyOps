@@ -1,0 +1,32 @@
+# tasks to define a host object representing the current host and add to the related cfg file
+
+- block:
+  
+  - name: Create master host definition
+    blockinfile:
+      path: /etc/nagios/conf.d/{{ item }}_hosts.cfg
+      create: yes
+      block: |
+        define host {
+          use {{ item }}-master-host
+          host_name {{ ansible_fqdn }}
+          address {{ inventory_hostname }}
+        }
+      marker: "# {mark} add master host {{ ansible_fqdn }}"
+    when: cluster_role == 'master'
+    
+  - name: Create host definition
+    blockinfile:
+      path: /etc/nagios/conf.d/{{ item }}_hosts.cfg
+      create: yes
+      block: |
+        define host {
+          use {{ item }}-host
+          host_name {{ ansible_fqdn }}
+          address {{ inventory_hostname }}
+        }
+      marker: "# {mark} add host {{ ansible_fqdn }}"
+    when: cluster_role != 'master'
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

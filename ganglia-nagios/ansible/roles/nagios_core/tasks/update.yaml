@@ -9,6 +9,11 @@
     template:
       src: contacts.cfg.j2
       dest: /etc/nagios/objects/contacts.cfg
+
+  - name: Remove the config files in conf.d
+    shell: rm -rf *
+    args:
+      chdir: /etc/nagios/conf.d/
   
   - name: Generate username and password for nagios web
     shell: htpasswd -bc {{ nagios_web_auth_file }} {{ nagios_admin_username }} {{ nagios_web_admin_password }}

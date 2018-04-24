@@ -1,0 +1,39 @@
+# tasks to clean the files in conf.d
+
+- block:
+
+  - name: Create a temp dir to save hosts definitions for each cluster
+    shell: mkdir hosts_temp
+    args:
+      chdir: /etc/nagios
+  
+  - name: Save the hosts definitions to the created temp dir
+    copy:
+      src: /etc/nagios/conf.d/{{ cluster_item }}_hosts.cfg
+      dest: /etc/nagios/hosts_temp/{{ cluster_item }}_hosts.cfg
+      remote_src: yes
+    with_items: "{{ cluster_list }}"
+    loop_control:
+      loop_var: cluster_item
+
+  - name: Remove the config files in conf.d
+    shell: rm -rf *
+    args:
+      chdir: /etc/nagios/conf.d/
+
+  - name: Restore the hosts definitions to the conf.d
+    copy:
+      src: /etc/nagios/hosts_temp/{{ cluster_item }}_hosts.cfg
+      dest: /etc/nagios/conf.d/{{ cluster_item }}_hosts.cfg
+      remote_src: yes
+    with_items: "{{ cluster_list }}"
+    loop_control:
+      loop_var: cluster_item
+      
+  - name: Remove the temp dir
+    shell: rm -rf hosts_temp/
+    args:
+      chdir: /etc/nagios
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

@@ -22,16 +22,7 @@
   
   - name: Define host and add to cfg file
     delegate_to: "{{ outer_item }}"
-    blockinfile:
-      path: /etc/nagios/conf.d/{{ item }}_hosts.cfg
-      create: yes
-      block: |
-        define host {
-          use {{ item }}-host
-          host_name {{ ansible_fqdn }}
-          address {{ inventory_hostname }}
-        }
-      marker: "# {mark} add host {{ ansible_fqdn }}"        
+    include_tasks: "create_host_definition.yaml"       
     with_items: "{{ cluster_list }}"
     when: "item in group_names"
 
