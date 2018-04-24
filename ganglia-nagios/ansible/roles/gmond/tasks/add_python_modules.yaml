@@ -11,9 +11,9 @@
       mode: u=rw,g=r,o=r
       
   - name: Add customized pyconf file
-    copy:
-      src: conf.d/{{ item }}.pyconf
-      dest: /etc/ganglia/conf.d/
+    template:
+      src: conf.d/{{ item }}.pyconf.j2
+      dest: /etc/ganglia/conf.d/{{ item }}.pyconf
       owner: root
       group: root
       mode: u=rw,g=r,o=r

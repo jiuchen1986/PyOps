@@ -9,9 +9,15 @@ cluster_list:
 - calipso
 
 # customized python modules for gmond on the monitored hosts
-# names listed must be identical to the names of files in roles/gmond/files/conf.d and roles/gmond/files/python_modules
+# names listed must be identical to the names of files in roles/gmond/templates/conf.d and roles/gmond/files/python_modules
 gmond_python_modules:
 - systemd_stats
+
+# list services managed by systemd on the monitored hosts which are checked
+gmond_systemd_check_services:
+- kubelet
+- docker
+- etcd
 
 # multicast or unicast
 gmond_mode: multicast

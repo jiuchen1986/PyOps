@@ -99,4 +99,8 @@ nagios_check_ganglia_metrics:
   oper: less
   warn_val: 1
   crit_val: 1.5
+- name: service_status_etcd
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
     

@@ -3,9 +3,9 @@ modules {
     name = "systemd_stats"
     language = "python"
 
-    #param target_services {
-    #  value = "docker,kubelet"
-    #}
+    param target_services {
+      value = "{{ gmond_systemd_check_services | join(',') }}"
+    }
   }
 }
 
