@@ -112,7 +112,7 @@ An inventory file for a cluster is like:
     10.210.123.[90:92] cluster_role=master
     10.210.123.[93:99] cluster_role=worker
 
-For current implementations, the variable `cluster_role` is not used.
+The variable `cluster_role` is used to support cluster role aware nagios service definitions.
 
 
 ### Configure variables used for installation
