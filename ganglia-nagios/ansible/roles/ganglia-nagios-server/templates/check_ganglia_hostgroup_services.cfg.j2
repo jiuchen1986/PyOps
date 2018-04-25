@@ -32,24 +32,33 @@ define service {
   service_description {{ cluster_item }}-check-ganglia-heartbeat
 }
 
+{% set host_cluster_type = hostvars[groups[cluster_item][0]]['cluster_type'] %}
+
 {% for metric in nagios_check_ganglia_metrics %}
-  {% if 'cluster_role' in metric %}
-    {% set metric_cluster_role = metric.cluster_role %}
-  {% endif %}
-  {% if metric_cluster_role|default('') == 'master' %}
+{% if 'cluster_role' in metric %}
+{% set metric_cluster_role = metric.cluster_role %}
+{% endif %}
+  
+{% if 'cluster_type' in metric %}
+{% set metric_cluster_type = metric.cluster_type %}
+{% endif %}
+  
+{% if metric_cluster_type|default('') == host_cluster_type or metric_cluster_type is not defined %}
+{% if metric_cluster_role|default('') == 'master' %}
 define service {
   use check-ganglia-{{ metric.name }}
   hostgroup_name {{ cluster_item }}-master
   service_description {{ cluster_item }}-check-ganglia-{{ metric.name }}
 }
 
-  {% else %}
+{% else %}
 define service {
   use check-ganglia-{{ metric.name }}
   hostgroup_name {{ cluster_item }}
   service_description {{ cluster_item }}-check-ganglia-{{ metric.name }}
 }
 
-  {% endif %}
+{% endif %}
+{% endif %}
 {% endfor %}
 

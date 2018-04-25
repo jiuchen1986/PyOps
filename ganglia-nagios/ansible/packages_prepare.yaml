@@ -10,5 +10,20 @@
     yum:
       name: epel-release
       state: latest
+    register: result
+    ignore_errors: yes
+  
+  - name: Add epel repository
+    yum_repository:
+      name: epel
+      description: EPEL YUM repo
+      baseurl: https://dl.fedoraproject.org/pub/epel/$releasever/$basearch
+    when: result|failed
+  
+  - name: Retry install epel release
+    yum:
+      name: epel-release
+      state: latest
+    when: result|failed
 
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

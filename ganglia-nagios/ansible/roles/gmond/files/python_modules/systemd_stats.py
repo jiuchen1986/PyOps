@@ -32,7 +32,7 @@ log = logging.getLogger('systemd_stats')
 def check_handler(name):
     '''Handler to check service'''
 
-    info_list = name.split('_')
+    info_list = name.split('-')
     check_target = info_list[1]
     svc_name = info_list[2]
     try:
@@ -59,7 +59,7 @@ def generate_desc(name,
                   format=FORMAT):
     '''Generat a descriptor'''
 
-    info_list = name.split('_')
+    info_list = name.split('-')
     d = dict(name=name,
                 call_back=check_handler,
                 time_max=time_max,
@@ -88,7 +88,7 @@ def metric_init(params):
 
     for svc in TARGET_SERVICES:
         for target in CHECK_TARGETS:
-            descriptors.append(generate_desc('_'.join([METRIC_PREFIX, target, svc]),
+            descriptors.append(generate_desc('-'.join([METRIC_PREFIX, target, svc]),
                                              target))
 
     return descriptors

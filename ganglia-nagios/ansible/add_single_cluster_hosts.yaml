@@ -9,6 +9,7 @@
     gmond_mode: multicast
     gmond_multicast_port: "{{ gmond_multicast_port }}"
     cluster_role: master
+    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['master'] }}"
   
@@ -22,6 +23,7 @@
     gmond_mode: multicast
     gmond_multicast_port: "{{ gmond_multicast_port }}"
     cluster_role: etcd
+    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['etcd'] }}"
   when: item not in groups['master']
@@ -36,6 +38,7 @@
     gmond_mode: multicast
     gmond_multicast_port: "{{ gmond_multicast_port }}"
     cluster_role: worker
+    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['worker'] }}"
   
@@ -49,5 +52,6 @@
     gmond_mode: multicast
     gmond_multicast_port: "{{ gmond_multicast_port }}"
     cluster_role: ingress_lb
+    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['ingress_lb'] }}"

@@ -5,7 +5,6 @@
   - name: Create master host definition
     blockinfile:
       path: /etc/nagios/conf.d/{{ item }}_hosts.cfg
-      create: yes
       block: |
         define host {
           use {{ item }}-master-host
@@ -18,7 +17,6 @@
   - name: Create host definition
     blockinfile:
       path: /etc/nagios/conf.d/{{ item }}_hosts.cfg
-      create: yes
       block: |
         define host {
           use {{ item }}-host
