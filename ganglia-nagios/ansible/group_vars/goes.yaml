@@ -1,5 +1,5 @@
 ---
-known_domain: ".seli.gic.ericsson.se"
+known_domain: ""
 
 
 # the cluster name used for configuration of gmond, recommended to be identical to the ansible host group name
@@ -7,7 +7,7 @@ gmond_cluster_name: goes
 
 # the nodes that are connected by gmetad                     
 gmond_cluster_head:
-- "10.210.123.40:8661" 
+- "xxx.xxx.xxx.xxx:8661" 
   
 gmond_mode: multicast
 

@@ -1,12 +1,13 @@
 ---
-# ansible_not_get_facts: no
-# ansible_distribution: CentOS
+ansible_not_get_facts: yes
+ansible_distribution: CentOS
 
 # a variable to list all clusters to be monitored, the name of cluster must be identical to the corresponding ansible host group name
 cluster_list:
 - goes
 - earth
 - calipso
+- suzaku
 
 # a variable indicate the type of the cluster which could be overwrited in the group's vars
 cluster_type: kubespray

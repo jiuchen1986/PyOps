@@ -1,5 +1,5 @@
 [goes]
-10.210.123.[40:42]     cluster_role=master
-10.210.123.[43:50]     cluster_role=worker
+10.xxx.xxx.[40:42]     cluster_role=master
+10.xxx.xxx.[43:50]     cluster_role=worker
 
 

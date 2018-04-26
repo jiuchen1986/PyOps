@@ -1,6 +1,0 @@
-[earth]
-10.210.127.30          cluster_role=master
-10.210.127.[31:34]     cluster_role=worker
-
-
-

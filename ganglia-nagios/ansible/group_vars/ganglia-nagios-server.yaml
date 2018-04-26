@@ -31,7 +31,7 @@ ganglia_web_auth_system: disabled
 nagios_admin_username: adminnagios
 
 # email address for admin user
-nagios_admin_email: xin.e.chen@ericsson.com
+nagios_admin_email: xxxx@example.com
 
 # password for admin user to login to nagios web
 nagios_web_admin_password: admin
@@ -49,11 +49,6 @@ nagios_contacts:
     email: "{{ nagios_admin_email }}"
     service_notification_options: w,u,c,r,f,s
     host_notification_options: d,u,r,f,s
-  - contact_name: hanzhe
-    alias: Hanzhe Chen
-    email: hanzhe.chen@ericsson.com
-    service_notification_options: u,c,r
-    host_notification_options: d,u,r
 
 
 
