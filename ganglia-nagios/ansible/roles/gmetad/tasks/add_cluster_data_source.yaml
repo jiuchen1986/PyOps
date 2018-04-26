@@ -9,7 +9,7 @@
     lineinfile:
       path: /etc/ganglia/gmetad.conf
       insertafter: "^data_source"
-      line: "data_source \"{{ hostvars[member_host]['gmond_cluster_name'] }}\" {{ gmetad_clusters_poll_interval }} {{ hostvars[member_host]['gmond_cluster_head'] | join(' ') }}"
+      line: "data_source \"{{ item }}\" {{ gmetad_clusters_poll_interval }} {{ hostvars[member_host]['gmond_cluster_head'] | join(' ') }}"
       state: present
 
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

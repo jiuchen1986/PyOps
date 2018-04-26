@@ -44,7 +44,7 @@
 data_source "localhost" {{ gmetad_localhost_poll_interval }} localhost:{{ gmond_udp_recv_port }}
 {% for cluster in cluster_list %}
 {% set member=groups[cluster][0] %}
-data_source "{{ hostvars[member]['gmond_cluster_name'] }}" {{ gmetad_clusters_poll_interval }} {{ hostvars[member]['gmond_cluster_head'] | join(" ") }}
+data_source "{{ cluster }}" {{ gmetad_clusters_poll_interval }} {{ hostvars[member]['gmond_cluster_head'] | join(" ") }}
 {% endfor %}
 
 #

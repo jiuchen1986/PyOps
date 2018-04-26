@@ -8,7 +8,7 @@
   - name: Remove cluster data source
     lineinfile:
       path: /etc/ganglia/gmetad.conf
-      regexp: "^data_source \"{{ hostvars[member_host]['gmond_cluster_name'] }}\" "
+      regexp: "^data_source \"{{ item }}\" "
       state: absent
 
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
