@@ -10,6 +10,7 @@
     yum:
       name: epel-release
       state: latest
+      disable_gpg_check: yes
     register: result
     ignore_errors: yes
   
@@ -18,12 +19,14 @@
       name: epel
       description: EPEL YUM repo
       baseurl: https://dl.fedoraproject.org/pub/epel/$releasever/$basearch
+      gpgcheck: no
     when: result|failed
   
   - name: Retry install epel release
     yum:
       name: epel-release
       state: latest
+      disable_gpg_check: yes
     when: result|failed
 
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
