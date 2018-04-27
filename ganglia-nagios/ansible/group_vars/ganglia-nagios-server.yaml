@@ -3,10 +3,11 @@
 gmond_udp_recv_buffer: 10485760
 
 # the interval polling metrics from gmond on localhost
-gmetad_localhost_poll_interval: 20
+# note that the storage archi of rrd (rra) is assuming 15 seconds polling by default, change this should change the rra also
+gmetad_localhost_poll_interval: 15
 
 # the interval polling metrics from gmonds on hosts in clusters
-gmetad_clusters_poll_interval: 20
+gmetad_clusters_poll_interval: 15
 
 # the grid name
 gmetad_grid_name: rnd_tenant
