@@ -83,10 +83,10 @@ nagios_check_ganglia_metrics:
   oper: less
   warn_val: 40
   crit_val: 10
-- name: mem_free
-  oper: less
-  warn_val: 3
-  crit_val: 1
+- name: mem_used_percent
+  oper: more
+  warn_val: 80
+  crit_val: 90
 - name: service-status-kubelet
   oper: less
   warn_val: 1

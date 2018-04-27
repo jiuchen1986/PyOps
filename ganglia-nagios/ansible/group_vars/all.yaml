@@ -16,6 +16,7 @@ cluster_type: kubespray
 # names listed must be identical to the names of files in roles/gmond/templates/conf.d and roles/gmond/files/python_modules
 gmond_python_modules:
 - systemd_stats
+- mem_stats
 
 # list services managed by systemd on the monitored hosts which are checked, could be overwrited in the group's vars
 gmond_systemd_check_services:
