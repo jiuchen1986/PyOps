@@ -1,0 +1,16 @@
+# tasks to remove data source of each cluster from config file
+
+- block:
+    
+  - name: Remove data source of each cluster from config file
+    include_tasks: remove_cluster_data_source.yaml
+    with_items: "{{ cluster_list }}"
+      
+  - name: Restart gmetad with systemd
+    systemd:
+      name: gmetad
+      state: restarted
+      enabled: yes
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

@@ -1,0 +1,11 @@
+---
+- name: Remove the config files relate to clusters
+  shell: rm -rf {{ item }}*
+  args:
+    chdir: /etc/nagios/conf.d/
+  with_items: "{{ cluster_list }}"
+  
+- name: Restart nagios with systemd
+  systemd:
+    name: nagios
+    state: restarted

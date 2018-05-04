@@ -40,8 +40,9 @@ The operations for a single cluster are designed to be applied using an inventor
     
     [all:vars]
     single_cluster=earth
-    gmond_cluster_head="10.210.127.30:8662"
+    gmond_cluster_head="10.xxx.xxx.30:8662"
     gmond_multicast_port=8662
+    cluster_type=kubespray
 
 Insure that explicitly define the `ansible_host` variable for each host using the ip address. 
 
@@ -52,6 +53,7 @@ The host in the `ganglia-nagios-server` group points to the monitoring server. A
 - **single_cluster**: the name of the current cluster
 - **gmond\_cluster\_head**: the endpoint pointing to the head of the cluster to which the ganglia-gmetad on the monitoring server will connect collecting monitoring data. The endpoint is composed as ip address plus port 
 - **gmond\_multicast\_port**: the port each ganglia-gmond on the monitored host is listening on. Must be identical to the one used in the **gmond\_cluster\_head**
+- **cluster\_type**: the type of the cluster which can be used to distinguish application of different monitoring metrics
 
 ### Configure variables used for installation
 The varibles used to configure the ganglia and the nagios during the installation are listed at `group_vars/all.yaml` and `group_vars/ganglia-nagios-server.yaml`. Meanings are described in the files with comments.
@@ -77,6 +79,24 @@ Actions applied in the installation for a single cluster could be removed by run
 
     ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_uninstall" site.yaml
 
+or
+
+    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_delete" site.yaml
+
+**Notice**: The `cluster_uninstall` removes the gmond process and related files, including configuration and plugins, from each monitoring host in the cluster, while the `cluster_delete` only removes monitoring actions on the cluster from the monitoring server side. The `cluster_delete` can be used for the scenarios such as that all hosts of a cluster are shutdown, which the following parts in the `site.yaml` needs to be commented out before using:
+
+    # - hosts: clusters
+      # gather_facts: yes
+      # become: yes
+      # pre_tasks:
+      # - name: Prepare packages
+        # include_tasks: packages_prepare.yaml
+        # tags:
+        # - gmond
+        # when: act == 'install' or act == 'cluster_install'
+      # roles:
+      # - { role: gmond, tags: ['gmond'] }
+      # - { role: ganglia-nagios-client, tags: ['ganglia_nagios'] }
 
 ## Add monitoring to multiple clusters with/without installing the monitoring server
 This project supports add monitoring to the hosts bearing multiple kubernetes clusters, with or without the monitoring server has been setup.
@@ -128,13 +148,13 @@ A file for a cluster is like:
     
     # the nodes that are connected by gmetad 
     gmond_cluster_head:
-    - "10.210.123.90:8663" 
+    - "xxx.xxx.xxx.xxx:8663" 
       
     gmond_mode: multicast
     
     gmond_multicast_port: 8663 
 
-For the meanings of variables, please read the comments in the file and refer to the description for the single cluster scenario.
+For the meanings of variables, please read the comments in the file and refer to the description for the single cluster scenario. **Note that** a variable named `cluster_type` could be indicated if the type of cluster is not `kubespray`.
 
 ### Installation on multiple clusters and the monitoring server
 Completing the above steps, monitoring for multiple clusters and the monitoring server can be setup by executing:
@@ -166,3 +186,9 @@ To only update monitoring configurations for multiple clusters, run:
 To only remove actions applied in the installation for multiple clusters, running:
 
     ansible-playbook -i inventory/ -e "act=cluster_uninstall" site.yaml
+
+### Remove monitoring actions on clusters only from the monitoring server side
+
+    ansible-playbook -i inventory/ -e "act=cluster_delete" site.yaml
+
+Refer to the contents in the single cluster section for the differences between the `cluster_uninstall` and the `cluster_delete`.
