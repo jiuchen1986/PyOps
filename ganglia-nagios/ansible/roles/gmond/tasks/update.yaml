@@ -1,31 +1,35 @@
 # tasks to update gmond configuration on monitored hosts
-
-- block:
     
-  - name: Configure for system requirement
-    include_tasks: config_system.yaml     
-  
-  - name: Get gmond cluster name which is identical to the cluster's name
-    set_fact:
-      gmond_cluster_name: "{{ item }}"
-    with_items: "{{ cluster_list }}"
-    when: item in group_names
-  
-  - name: Copy config file with multicast mode
-    template:
-      src: gmond_multicast.conf.j2
-      dest: /etc/ganglia/gmond.conf
-    when: gmond_mode == 'multicast'
-    
-  - name: Add customized gmond python modules
-    include_tasks: add_python_modules.yaml
-    with_items: "{{ gmond_python_modules }}"
+- name: Configure for system requirement
+  include_tasks: config_system.yaml     
 
-  - name: Restart gmond with systemd
-    systemd:
-      name: gmond
-      state: restarted
-      enabled: yes
+- name: Get gmond cluster name which is identical to the cluster's name
+  set_fact:
+    gmond_cluster_name: "{{ item }}"
+  with_items: "{{ cluster_list }}"
+  when: item in group_names
 
+- name: Copy config file with multicast mode
+  template:
+    src: gmond_multicast.conf.j2
+    dest: /etc/ganglia/gmond.conf
+  when: gmond_mode == 'multicast'
+  
+- name: Add customized gmond python modules
+  include_tasks: add_python_modules.yaml
+  with_items: "{{ gmond_python_modules }}"
+  
+- name: Restart gmond with systemd
+  systemd:
+    name: gmond
+    state: restarted
+    enabled: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  
+- name: Restart gmond with systemd
+  systemd:
+    name: ganglia-monitor
+    state: restarted
+    enabled: yes      
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 

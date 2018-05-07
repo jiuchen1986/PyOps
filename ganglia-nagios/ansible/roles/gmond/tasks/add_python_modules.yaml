@@ -1,23 +1,28 @@
 # tasks to add customized gmond python modules
 
-- block:
-
-  - name: Add customized gmond python modules
-    copy:
-      src: python_modules/{{ item }}.py
-      dest: /usr/lib64/ganglia/python_modules/
-      owner: root
-      group: root
-      mode: u=rw,g=r,o=r
-      
-  - name: Add customized pyconf file
-    template:
-      src: conf.d/{{ item }}.pyconf.j2
-      dest: /etc/ganglia/conf.d/{{ item }}.pyconf
-      owner: root
-      group: root
-      mode: u=rw,g=r,o=r
-      
-
+- name: Add customized gmond python modules
+  copy:
+    src: python_modules/{{ item }}.py
+    dest: /usr/lib64/ganglia/python_modules/
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  
+- name: Add customized gmond python modules
+  copy:
+    src: python_modules/{{ item }}.py
+    dest: /usr/lib/ganglia/python_modules/
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  
+- name: Add customized pyconf file
+  template:
+    src: conf.d/{{ item }}.pyconf.j2
+    dest: /etc/ganglia/conf.d/{{ item }}.pyconf
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
 

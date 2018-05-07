@@ -11,22 +11,36 @@
     yum:
       name: ganglia-gmond-python
       state: latest
+      
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'        
     
-  - name: Configure for system requirement
-    include_tasks: config_system.yaml  
+- name: Install gmond python (apt)
+  apt:
+    name: ganglia-gmond-python
+    state: latest
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'      
+    
+- name: Configure for system requirement
+  include_tasks: config_system.yaml  
+
+- name: Configure gmond
+  include_tasks: init_config_gmond.yaml
   
-  - name: Configure gmond
-    include_tasks: init_config_gmond.yaml
-    
-  - name: Add customized gmond python modules
-    include_tasks: add_python_modules.yaml
-    with_items: "{{ gmond_python_modules }}"
+- name: Add customized gmond python modules
+  include_tasks: add_python_modules.yaml
+  with_items: "{{ gmond_python_modules }}"
 
-  - name: Enable and start gmond with systemd
-    systemd:
-      name: gmond
-      state: started
-      enabled: yes
-
+- name: Enable and start gmond with systemd
+  systemd:
+    name: gmond
+    state: started
+    enabled: yes
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  
+- name: Enable and start gmond with systemd
+  systemd:
+    name: ganglia-monitor
+    state: started
+    enabled: yes      
+  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 
