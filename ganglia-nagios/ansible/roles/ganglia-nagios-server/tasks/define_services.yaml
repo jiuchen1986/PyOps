@@ -2,10 +2,56 @@
 
 - block:
 
-  - name: Generate config files for services definitions
-    template:
-      src: check_ganglia_services.cfg.j2
-      dest: /etc/nagios/conf.d/check_ganglia_services.cfg
+  # - name: Generate config files for services definitions
+    # template:
+      # src: check_ganglia_services.cfg.j2
+      # dest: /etc/nagios/conf.d/check_ganglia_services.cfg
+      
+  - name: Generate service group definition
+    blockinfile:
+      path: /etc/nagios/conf.d/check_ganglia_services.cfg
+      create: yes
+      block: |
+        define servicegroup {
+          servicegroup_name ganglia-metrics
+          alias Ganglia Metrics
+        }
+      marker: "# {mark} define a service group containing the service checking ganglia metric"
+      
+  - name: Generate service definition of heartbeat checking
+    blockinfile:
+      path: /etc/nagios/conf.d/check_ganglia_services.cfg
+      block: |
+        define service {
+          use local-service
+          name check-ganglia-heartbeat
+          service_groups ganglia-metrics
+          notifications_enabled 1
+          check_interval {{ nagios_check_ganglia_check_interval }}
+          notification_interval {{ nagios_check_ganglia_notification_interval }}
+          check_command check_ganglia_heartbeat!{{ nagios_check_ganglia_heartbeat_threshold }}
+          register 0
+        }
+      marker: "# {mark} service template for checking heartbeat via ganglia"
+      
+  - name: Generate services definitions for metrics
+    blockinfile:
+      path: /etc/nagios/conf.d/check_ganglia_services.cfg
+      block: |
+        define service {
+          use local-service
+          name check-ganglia-{{ metric.name }}
+          service_groups ganglia-metrics
+          notifications_enabled 1
+          check_interval {{ nagios_check_ganglia_check_interval }}
+          notification_interval {{ nagios_check_ganglia_notification_interval }}
+          check_command check_ganglia_metric!{{ metric.name }},{{ metric.oper }},{{ metric.warn_val }},{{ metric.oper }},{{ metric.crit_val }}
+          register 0
+        }
+      marker: "# {mark} service template for checking {{ metric.name }} via ganglia"
+    with_items: "{{ nagios_check_ganglia_metrics }}"
+    loop_control:
+      loop_var: metric
 
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
 

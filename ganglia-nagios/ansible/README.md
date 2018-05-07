@@ -1,8 +1,13 @@
 # Automated Setup of a Ganglia-Nagios System monitoring Kubernetes cluster
 This project provides Ansible playbooks to install Ganglia and Nagios to monitor the infrastructure bearing a single or multiple Kubernetes clusters.
 
-## Add monitoring to a single cluster with the monitoring server installed
-This project supports add monitoring to the hosts bearing a single kubernetes cluster, with a prerequisite that the monitoring server, i.e. a host running nagios-core, ganglia-gmetad and ganglia-web, has been setup.
+## Required Preparations On The Hosts in Monitoring Clusters
+Basically, there is only one requirement needs to be fulfilled on the hosts in the monitoring clusters. **The host acting as the header of a cluster must be able to resolve all the hosts' ip addresses from their fqdns in the clusters**. A cluster header is a host from which the ganglia gmetad on the monitoring server gets metric data of the cluster.
+
+Hence, if the connected DNS server can not help, the mapping between the ip address and the fqdn of each host in the monitoring cluster must be added manually to the `/etc/hosts` file on the cluster header.
+
+## Add Monitoring To A Single Erikube Cluster With The Installed Monitoring Server
+This project supports add monitoring to the hosts bearing a single erikube cluster, with a prerequisite that the monitoring server, i.e. a host running nagios-core, ganglia-gmetad and ganglia-web, has been setup.
 
 The actions taken for a single cluster are:
 
@@ -13,54 +18,60 @@ The actions taken for a single cluster are:
 
 ### Prepare an erikube-like inventory file
 
-The operations for a single cluster are designed to be applied using an inventory file from the playbook installing erikube with a little modification. A example of the modified inventory file is given in a file named `erikube_test_hosts`:
+The operations for a single cluster are designed to be applied using an inventory file from the playbook installing erikube with a little modification. An example of the modified inventory file is given in a file named `erikube_test_hosts`:
 
-    node1 ansible_host=10.210.127.30
-    node2 ansible_host=10.210.127.31
-    node3 ansible_host=10.210.127.32
-    node4 ansible_host=10.210.127.33
-    node5 ansible_host=10.210.127.34
+    node1 ansible_host=10.xxx.xxx.30
+    node2 ansible_host=10.xxx.xxx.31
+    # 10.xxx.xxx.30
+    # 10.xxx.xxx.31
     
     [master]
     node1
+    # 10.xxx.xxx.30
     
     [etcd]
     node1
+    # 10.xxx.xxx.30
     
     [worker]
     node2
-    node3
-    node4
-    node5
+    # 10.xxx.xxx.31
     
     [ingress_lb]
     
-    [ganglia-nagios-server]
-    localhost
     
     [all:vars]
     single_cluster=earth
+    ganglia_nagios_server=localhost
+    gmond_systemd_check_services=kubelet,docker,etcd_container
     gmond_cluster_head="10.xxx.xxx.30:8662"
     gmond_multicast_port=8662
-    cluster_type=kubespray
+    cluster_type=erikube
 
-Insure that explicitly define the `ansible_host` variable for each host using the ip address. 
+**Notice:**
 
-Compared to the original inventory file used by the erikube installation playbook, sections of `[ganglia-nagios-server]` and `[all:vars]` are added required by running the playbook in this project.
+- Use explicitly defined the `ansible_host` variable with a ip address for each host if the inventory name is not ip address, or
+- Directly use ip addresses for the inventory names.
 
-The host in the `ganglia-nagios-server` group points to the monitoring server. And the variables defined in `[all:vars]` section are explained as follows:
+Compared to the original inventory file used by the erikube installation playbook, a section of `[all:vars]` is added required by running the playbook in this project. The variables defined in `[all:vars]` section are explained as follows:
 
 - **single_cluster**: the name of the current cluster
+- **ganglia\_nagios\_server**: a resolvable name or a reachable ip address of the installed monitoring server running ganglia-gmetad, ganglia-web and nagios core
+- **gmond\_systemd\_check\_services**: the services needed to be monitored by the gmond on the monitoring host which are managed by the systemd 
 - **gmond\_cluster\_head**: the endpoint pointing to the head of the cluster to which the ganglia-gmetad on the monitoring server will connect collecting monitoring data. The endpoint is composed as ip address plus port 
 - **gmond\_multicast\_port**: the port each ganglia-gmond on the monitored host is listening on. Must be identical to the one used in the **gmond\_cluster\_head**
-- **cluster\_type**: the type of the cluster which can be used to distinguish application of different monitoring metrics
+- **cluster\_type**: the type of the cluster which can be used to distinguish application of different monitoring metrics. Current supports `kubespray` and `erikube`
+
+Note that these variables also can be transferred to the playbook at running time by typing them in the command line, in case modifying the original inventory file for the erikube installation.
 
 ### Configure variables used for installation
 The varibles used to configure the ganglia and the nagios during the installation are listed at `group_vars/all.yaml` and `group_vars/ganglia-nagios-server.yaml`. Meanings are described in the files with comments.
 
 For usage of the single cluster scenario:
 
-- comment the variable named `cluster_list` in `group_vars/all.yaml`
+- comment out the variable named `cluster_list` in `group_vars/all.yaml`
+- comment out the variable named `cluster_type` in `group_vars/all.yaml`
+- comment out the variable named `gmond_systemd_check_services` in `group_vars/all.yaml`
 - leave only `group_vars/all.yaml` and `group_vars/ganglia-nagios-server.yaml` in the `group_vars` directory
 
 ### Setup monitoring for the cluster
@@ -98,7 +109,7 @@ or
       # - { role: gmond, tags: ['gmond'] }
       # - { role: ganglia-nagios-client, tags: ['ganglia_nagios'] }
 
-## Add monitoring to multiple clusters with/without installing the monitoring server
+## Add Monitoring To Multiple Clusters With/Without Installing The Monitoring Server
 This project supports add monitoring to the hosts bearing multiple kubernetes clusters, with or without the monitoring server has been setup.
 
 The actions taken for multiple clusters are:
@@ -192,3 +203,11 @@ To only remove actions applied in the installation for multiple clusters, runnin
     ansible-playbook -i inventory/ -e "act=cluster_delete" site.yaml
 
 Refer to the contents in the single cluster section for the differences between the `cluster_uninstall` and the `cluster_delete`.
+
+## Add New Gmond Python Modules To Monitoring Hosts
+This project supports add customized gmond python modules to monitoring hosts during installations and updates. To do this, follow the steps below:
+
+- Put the python module file, which is a python file with the suffix of `.py`, `<moudle_name>.py` in `roles/gmond/files/python_modules/`.
+- Put the Jinja2 template of the corresponding configuration file, with the suffix of `.pyconf.j2`, `<module_name>.pyconf.j2` in `roles/gmond/templates/conf.d/`.
+- Add the module's name `<module_name>` to the list variable `gmond_python_modules` in `group_vars/all.yaml`.
+- Run `ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_update" site.yaml` for a single erikube cluster, or `ansible-playbook -i inventory/ -e "act=cluster_update" site.yaml` for multiple target clusters.

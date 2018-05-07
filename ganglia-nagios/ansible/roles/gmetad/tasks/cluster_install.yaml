@@ -2,6 +2,10 @@
 
 - block:    
   
+  - name: Remove data source of each cluster from config file
+    include_tasks: remove_cluster_data_source.yaml
+    with_items: "{{ cluster_list }}"
+  
   - name: Add data source of each cluster to config file
     include_tasks: add_cluster_data_source.yaml
     with_items: "{{ cluster_list }}"

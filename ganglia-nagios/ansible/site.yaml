@@ -17,6 +17,12 @@
     with_items: "{{ cluster_list }}"
     loop_control:
       loop_var: cluster_item
+  - name: Dynamically create 'ganglia-nagios-server' host group when 'single_cluster' is defined
+    add_host:
+      name: "{{ ganglia_nagios_server }}"
+      cluster_list: "{{ cluster_list }}"
+      groups: ganglia-nagios-server
+    when: single_cluster is defined
   # - name: Dump hosts in 'clusters' group
     # debug:
       # msg: "host: {{ item }}, ansible_host: {{ hostvars[item]['ansible_host'] }}, cluster_role: {{ hostvars[item]['cluster_role'] }}, head: {{ hostvars[item]['gmond_cluster_head'] }}"

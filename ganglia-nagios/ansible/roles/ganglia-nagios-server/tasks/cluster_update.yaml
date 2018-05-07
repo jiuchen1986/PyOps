@@ -1,5 +1,4 @@
 ---
-- include_tasks: "define_commands.yaml"
 - include_tasks: "define_services.yaml"
 - include_tasks: "define_hostgroups_services.yaml"
 
