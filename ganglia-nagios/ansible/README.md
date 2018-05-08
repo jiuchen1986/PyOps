@@ -39,14 +39,6 @@ The operations for a single cluster are designed to be applied using an inventor
     
     [ingress_lb]
     
-    
-    [all:vars]
-    single_cluster=earth
-    ganglia_nagios_server=localhost
-    gmond_systemd_check_services=kubelet,docker,etcd_container
-    gmond_cluster_head="10.xxx.xxx.30:8662"
-    gmond_multicast_port=8662
-    cluster_type=erikube
 
 **Notice:**
 
