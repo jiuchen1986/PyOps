@@ -6,13 +6,7 @@
     cluster_list:
     - "{{ single_cluster }}"
     gmond_cluster_name: "{{ single_cluster }}"
-    gmond_cluster_head:
-    - "{{ gmond_cluster_head }}"
-    gmond_mode: multicast
-    gmond_multicast_port: "{{ gmond_multicast_port }}"
-    gmond_systemd_check_services: "{{ gmond_systemd_check_services.split(',') }}"
     cluster_role: master
-    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['master'] }}"
   when: "'ansible_host' in hostvars[item]"
@@ -24,13 +18,7 @@
     cluster_list:
     - "{{ single_cluster }}"
     gmond_cluster_name: "{{ single_cluster }}"
-    gmond_cluster_head:
-    - "{{ gmond_cluster_head }}"
-    gmond_mode: multicast
-    gmond_multicast_port: "{{ gmond_multicast_port }}"
-    gmond_systemd_check_services: "{{ gmond_systemd_check_services.split(',') }}"
     cluster_role: etcd
-    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['etcd'] }}"
   when: item not in groups['master'] and "'ansible_host' in hostvars[item]"
@@ -42,13 +30,7 @@
     cluster_list:
     - "{{ single_cluster }}"
     gmond_cluster_name: "{{ single_cluster }}"
-    gmond_cluster_head:
-    - "{{ gmond_cluster_head }}"
-    gmond_mode: multicast
-    gmond_multicast_port: "{{ gmond_multicast_port }}"
-    gmond_systemd_check_services: "{{ gmond_systemd_check_services.split(',') }}"
     cluster_role: worker
-    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['worker'] }}"
   when: "'ansible_host' in hostvars[item]"
@@ -60,13 +42,7 @@
     cluster_list:
     - "{{ single_cluster }}"
     gmond_cluster_name: "{{ single_cluster }}"
-    gmond_cluster_head:
-    - "{{ gmond_cluster_head }}"
-    gmond_mode: multicast
-    gmond_multicast_port: "{{ gmond_multicast_port }}"
-    gmond_systemd_check_services: "{{ gmond_systemd_check_services.split(',') }}"
     cluster_role: ingress_lb
-    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['ingress_lb'] }}"
   when: "'ansible_host' in hostvars[item]"
@@ -79,13 +55,7 @@
     cluster_list:
     - "{{ single_cluster }}"
     gmond_cluster_name: "{{ single_cluster }}"
-    gmond_cluster_head:
-    - "{{ gmond_cluster_head }}"
-    gmond_mode: multicast
-    gmond_multicast_port: "{{ gmond_multicast_port }}"
-    gmond_systemd_check_services: "{{ gmond_systemd_check_services.split(',') }}"
     cluster_role: master
-    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['master'] }}"
   when: "'ansible_host' not in hostvars[item]"
@@ -97,13 +67,7 @@
     cluster_list:
     - "{{ single_cluster }}"
     gmond_cluster_name: "{{ single_cluster }}"
-    gmond_cluster_head:
-    - "{{ gmond_cluster_head }}"
-    gmond_mode: multicast
-    gmond_multicast_port: "{{ gmond_multicast_port }}"
-    gmond_systemd_check_services: "{{ gmond_systemd_check_services.split(',') }}"
     cluster_role: etcd
-    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['etcd'] }}"
   when: item not in groups['master'] and "'ansible_host' not in hostvars[item]"
@@ -115,13 +79,7 @@
     cluster_list:
     - "{{ single_cluster }}"
     gmond_cluster_name: "{{ single_cluster }}"
-    gmond_cluster_head:
-    - "{{ gmond_cluster_head }}"
-    gmond_mode: multicast
-    gmond_multicast_port: "{{ gmond_multicast_port }}"
-    gmond_systemd_check_services: "{{ gmond_systemd_check_services.split(',') }}"
     cluster_role: worker
-    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['worker'] }}"
   when: "'ansible_host' not in hostvars[item]"
@@ -133,13 +91,7 @@
     cluster_list:
     - "{{ single_cluster }}"
     gmond_cluster_name: "{{ single_cluster }}"
-    gmond_cluster_head:
-    - "{{ gmond_cluster_head }}"
-    gmond_mode: multicast
-    gmond_multicast_port: "{{ gmond_multicast_port }}"
-    gmond_systemd_check_services: "{{ gmond_systemd_check_services.split(',') }}"
     cluster_role: ingress_lb
-    cluster_type: "{{ cluster_type }}"
     groups: "{{ single_cluster }}"
   with_items: "{{ groups['ingress_lb'] }}"
   when: "'ansible_host' not in hostvars[item]"

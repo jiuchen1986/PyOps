@@ -53,46 +53,50 @@ The operations for a single cluster are designed to be applied using an inventor
 - Use explicitly defined the `ansible_host` variable with a ip address for each host if the inventory name is not ip address, or
 - Directly use ip addresses for the inventory names.
 
-Compared to the original inventory file used by the erikube installation playbook, a section of `[all:vars]` is added required by running the playbook in this project. The variables defined in `[all:vars]` section are explained as follows:
+### Plan extra vars for the playbook
+In order to overwrite the variables' values in `group_vars/all.yaml`, variables for operations on the single cluster must be input using `-e` or `--extra-vars` when calling the playbook. The recognized variables for the current implementation are listed below:
 
 - **single_cluster**: the name of the current cluster
 - **ganglia\_nagios\_server**: a resolvable name or a reachable ip address of the installed monitoring server running ganglia-gmetad, ganglia-web and nagios core
 - **gmond\_systemd\_check\_services**: the services needed to be monitored by the gmond on the monitoring host which are managed by the systemd 
-- **gmond\_cluster\_head**: the endpoint pointing to the head of the cluster to which the ganglia-gmetad on the monitoring server will connect collecting monitoring data. The endpoint is composed as ip address plus port 
+- **gmond\_cluster\_head**: the list of endpoints pointing to the heads of the cluster to which the ganglia-gmetad on the monitoring server will connect collecting monitoring data. The endpoints are composed as ip address plus port 
 - **gmond\_multicast\_port**: the port each ganglia-gmond on the monitored host is listening on. Must be identical to the one used in the **gmond\_cluster\_head**
+- **gmond\_systemd\_check\_services**: the list of systemd managing services whose status need to be collected by the ganglia gmond on the monitoring hosts
 - **cluster\_type**: the type of the cluster which can be used to distinguish application of different monitoring metrics. Current supports `kubespray` and `erikube`
 
-Note that these variables also can be transferred to the playbook at running time by typing them in the command line, in case modifying the original inventory file for the erikube installation.
+Here gives an example of how to input the required variables using `-e` when calling the playbook:
 
-### Configure variables used for installation
-The varibles used to configure the ganglia and the nagios during the installation are listed at `group_vars/all.yaml` and `group_vars/ganglia-nagios-server.yaml`. Meanings are described in the files with comments.
+    ansible-playbook -i path_to_your_erikube-like_inventory_file \
+        -e "act=cluster_install" \
+        -e "single_cluster=cluster_name" \
+        -e "ganglia_nagios_server=localhost" \
+        -e "{'gmond_systemd_check_services': ['kubelet', 'docker', 'etcd_container']}" \
+        -e "{'gmond_cluster_head': ['10.xxx.xxx.30:8662']}" \
+        -e "gmond_multicast_port=8662" \
+        -e "cluster_type=erikube" \
+        site.yaml
 
-For usage of the single cluster scenario:
-
-- comment out the variable named `cluster_list` in `group_vars/all.yaml`
-- comment out the variable named `cluster_type` in `group_vars/all.yaml`
-- comment out the variable named `gmond_systemd_check_services` in `group_vars/all.yaml`
-- leave only `group_vars/all.yaml` and `group_vars/ganglia-nagios-server.yaml` in the `group_vars` directory
+The meaning of `-e "act=cluster_install"` will be described later.
 
 ### Setup monitoring for the cluster
 Completing the above steps, monitoring for the single cluster can be setup by executing:
 
-    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_install" site.yaml
+    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_install" -e .... site.yaml
 
 ### Update monitoring configuration for the cluster
 Updating configurations for a single cluster also is supported, running:
 
-    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_update" site.yaml
+    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_update" -e .... site.yaml
 
 
 ### Remove monitoring for the cluster
 Actions applied in the installation for a single cluster could be removed by running:
 
-    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_uninstall" site.yaml
+    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_uninstall" -e .... site.yaml
 
 or
 
-    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_delete" site.yaml
+    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_delete" -e .... site.yaml
 
 **Notice**: The `cluster_uninstall` removes the gmond process and related files, including configuration and plugins, from each monitoring host in the cluster, while the `cluster_delete` only removes monitoring actions on the cluster from the monitoring server side. The `cluster_delete` can be used for the scenarios such as that all hosts of a cluster are shutdown, which the following parts in the `site.yaml` needs to be commented out before using:
 
