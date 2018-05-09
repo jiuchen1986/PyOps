@@ -85,7 +85,7 @@
     with_items: "{{ groups['etcd'] }}"
     when: "'ansible_host' not in hostvars[item]"
 
-  when: "'etcd' in groups"  
+  when: "'etcd' in groups and 'master' not in groups" 
 
   
 
