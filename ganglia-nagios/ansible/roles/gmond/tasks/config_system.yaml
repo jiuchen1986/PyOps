@@ -4,6 +4,7 @@
 - name: Disable selinux
   selinux:
     state: disabled
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
     
 - name: Check max recv mem of system
   shell: sysctl -n net.core.rmem_max

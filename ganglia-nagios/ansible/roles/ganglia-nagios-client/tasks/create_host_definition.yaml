@@ -26,5 +26,5 @@
       marker: "# {mark} add host {{ ansible_fqdn }}"
     when: cluster_role != 'master'
 
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  when: outer_ansible_distribution == 'CentOS' or outer_ansible_distribution == 'RedHat'
 

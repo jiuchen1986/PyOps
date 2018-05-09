@@ -16,7 +16,7 @@
     
 - name: Install gmond python (apt)
   apt:
-    name: ganglia-gmond-python
+    name: ganglia-monitor-python
     state: latest
   when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'      
     

@@ -1,12 +1,8 @@
 # tasks to add a host object representing the current host to all the monitoring servers
 
-- block:
-
-  - name: Add host info to all monitoring servers
-    include_tasks: define_host.yaml
-    with_items: "{{ groups['ganglia-nagios-server'] }}"
-    loop_control:
-      loop_var: outer_item
-
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+- name: Add host info to all monitoring servers
+  include_tasks: define_host.yaml
+  with_items: "{{ groups['ganglia-nagios-server'] }}"
+  loop_control:
+    loop_var: outer_item
 

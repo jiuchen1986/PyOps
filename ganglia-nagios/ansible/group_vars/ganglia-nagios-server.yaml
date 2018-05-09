@@ -91,6 +91,9 @@ nagios_check_ganglia_metrics:
   oper: less
   warn_val: 1
   crit_val: 1.5
+  cluster_type:
+  - kubespray
+  - erikube
 - name: service-status-docker
   oper: less
   warn_val: 1
@@ -100,11 +103,13 @@ nagios_check_ganglia_metrics:
   warn_val: 1
   crit_val: 1.5
   cluster_role: master
-  cluster_type: kubespray
+  cluster_type:
+  - kubespray
 - name: service-status-etcd_container
   oper: less
   warn_val: 1
   crit_val: 1.5
   cluster_role: master
-  cluster_type: erikube
+  cluster_type:
+  - erikube
     

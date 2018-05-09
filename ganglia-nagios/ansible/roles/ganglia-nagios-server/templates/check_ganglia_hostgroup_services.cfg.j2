@@ -37,14 +37,18 @@ define service {
 {% for metric in nagios_check_ganglia_metrics %}
 {% if 'cluster_role' in metric %}
 {% set metric_cluster_role = metric.cluster_role %}
+{% else %}
+{% set metric_cluster_role = '' %}
 {% endif %}
   
 {% if 'cluster_type' in metric %}
 {% set metric_cluster_type = metric.cluster_type %}
+{% else %}
+{% set metric_cluster_type = [] %}
 {% endif %}
   
-{% if metric_cluster_type|default('') == host_cluster_type or metric_cluster_type is not defined %}
-{% if metric_cluster_role|default('') == 'master' %}
+{% if host_cluster_type in metric_cluster_type or metric_cluster_type == [] %}
+{% if metric_cluster_role == 'master' %}
 define service {
   use check-ganglia-{{ metric.name }}
   hostgroup_name {{ cluster_item }}-master

@@ -1,97 +1,148 @@
 # Add hosts in a cluster to an ansible host group named by the value of 'single_cluster'
-- name: Add master hosts from ansible host
-  add_host:
-    name: "{{ hostvars[item]['ansible_host'] }}"
-    ansible_host: "{{ hostvars[item]['ansible_host'] }}"
-    cluster_list:
-    - "{{ single_cluster }}"
-    gmond_cluster_name: "{{ single_cluster }}"
-    cluster_role: master
-    groups: "{{ single_cluster }}"
-  with_items: "{{ groups['master'] }}"
-  when: "'ansible_host' in hostvars[item]"
+- block:
   
-- name: Add etcd hosts from ansible host
-  add_host:
-    name: "{{ hostvars[item]['ansible_host'] }}"
-    ansible_host: "{{ hostvars[item]['ansible_host'] }}"
-    cluster_list:
-    - "{{ single_cluster }}"
-    gmond_cluster_name: "{{ single_cluster }}"
-    cluster_role: etcd
-    groups: "{{ single_cluster }}"
-  with_items: "{{ groups['etcd'] }}"
-  when: item not in groups['master'] and "'ansible_host' in hostvars[item]"
-
-- name: Add worker hosts from ansible host
-  add_host:
-    name: "{{ hostvars[item]['ansible_host'] }}"
-    ansible_host: "{{ hostvars[item]['ansible_host'] }}"
-    cluster_list:
-    - "{{ single_cluster }}"
-    gmond_cluster_name: "{{ single_cluster }}"
-    cluster_role: worker
-    groups: "{{ single_cluster }}"
-  with_items: "{{ groups['worker'] }}"
-  when: "'ansible_host' in hostvars[item]"
+  - name: Add master hosts from ansible host
+    add_host:
+      name: "{{ hostvars[item]['ansible_host'] }}"
+      ansible_host: "{{ hostvars[item]['ansible_host'] }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: master
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['master'] }}"
+    when: "'ansible_host' in hostvars[item]"
+    
+  - name: Add master hosts from inventory name
+    add_host:
+      name: "{{ item }}"
+      ansible_host: "{{ item }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: master
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['master'] }}"
+    when: "'ansible_host' not in hostvars[item]"
   
-- name: Add ingress lb hosts from ansible host
-  add_host:
-    name: "{{ hostvars[item]['ansible_host'] }}"
-    ansible_host: "{{ hostvars[item]['ansible_host'] }}"
-    cluster_list:
-    - "{{ single_cluster }}"
-    gmond_cluster_name: "{{ single_cluster }}"
-    cluster_role: ingress_lb
-    groups: "{{ single_cluster }}"
-  with_items: "{{ groups['ingress_lb'] }}"
-  when: "'ansible_host' in hostvars[item]"
-
-
-- name: Add master hosts from inventory name
-  add_host:
-    name: "{{ item }}"
-    ansible_host: "{{ item }}"
-    cluster_list:
-    - "{{ single_cluster }}"
-    gmond_cluster_name: "{{ single_cluster }}"
-    cluster_role: master
-    groups: "{{ single_cluster }}"
-  with_items: "{{ groups['master'] }}"
-  when: "'ansible_host' not in hostvars[item]"
+  when: "'master' in groups"
+    
+    
+    
+- block:
   
-- name: Add etcd hosts from inventory name
-  add_host:
-    name: "{{ item }}"
-    ansible_host: "{{ item }}"
-    cluster_list:
-    - "{{ single_cluster }}"
-    gmond_cluster_name: "{{ single_cluster }}"
-    cluster_role: etcd
-    groups: "{{ single_cluster }}"
-  with_items: "{{ groups['etcd'] }}"
-  when: item not in groups['master'] and "'ansible_host' not in hostvars[item]"
+  - name: Add etcd hosts from ansible host
+    add_host:
+      name: "{{ hostvars[item]['ansible_host'] }}"
+      ansible_host: "{{ hostvars[item]['ansible_host'] }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: etcd
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['etcd'] }}"
+    when: item not in groups['master'] and "'ansible_host' in hostvars[item]"
+    
+  - name: Add etcd hosts from inventory name
+    add_host:
+      name: "{{ item }}"
+      ansible_host: "{{ item }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: etcd
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['etcd'] }}"
+    when: item not in groups['master'] and "'ansible_host' not in hostvars[item]"
 
-- name: Add worker hosts from inventory name
-  add_host:
-    name: "{{ item }}"
-    ansible_host: "{{ item }}"
-    cluster_list:
-    - "{{ single_cluster }}"
-    gmond_cluster_name: "{{ single_cluster }}"
-    cluster_role: worker
-    groups: "{{ single_cluster }}"
-  with_items: "{{ groups['worker'] }}"
-  when: "'ansible_host' not in hostvars[item]"
+  when: "'master' in groups and 'etcd' in groups"
+
+
+
+- block:
   
-- name: Add ingress lb hosts from inventory name
-  add_host:
-    name: "{{ item }}"
-    ansible_host: "{{ item }}"
-    cluster_list:
-    - "{{ single_cluster }}"
-    gmond_cluster_name: "{{ single_cluster }}"
-    cluster_role: ingress_lb
-    groups: "{{ single_cluster }}"
-  with_items: "{{ groups['ingress_lb'] }}"
-  when: "'ansible_host' not in hostvars[item]"
+  - name: Add etcd hosts when no master from ansible host
+    add_host:
+      name: "{{ hostvars[item]['ansible_host'] }}"
+      ansible_host: "{{ hostvars[item]['ansible_host'] }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: etcd
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['etcd'] }}"
+    when: "'ansible_host' in hostvars[item]"
+    
+  - name: Add etcd hosts when no master from inventory name
+    add_host:
+      name: "{{ item }}"
+      ansible_host: "{{ item }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: etcd
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['etcd'] }}"
+    when: "'ansible_host' not in hostvars[item]"
+
+  when: "'etcd' in groups"  
+
+  
+
+- block:
+
+  - name: Add worker hosts from ansible host
+    add_host:
+      name: "{{ hostvars[item]['ansible_host'] }}"
+      ansible_host: "{{ hostvars[item]['ansible_host'] }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: worker
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['worker'] }}"
+    when: "'ansible_host' in hostvars[item]"
+    
+  - name: Add worker hosts from inventory name
+    add_host:
+      name: "{{ item }}"
+      ansible_host: "{{ item }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: worker
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['worker'] }}"
+    when: "'ansible_host' not in hostvars[item]"
+
+  when:  "'worker' in groups"   
+    
+
+    
+- block:    
+  
+  - name: Add ingress lb hosts from ansible host
+    add_host:
+      name: "{{ hostvars[item]['ansible_host'] }}"
+      ansible_host: "{{ hostvars[item]['ansible_host'] }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: ingress_lb
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['ingress_lb'] }}"
+    when: "'ansible_host' in hostvars[item]"
+   
+  - name: Add ingress lb hosts from inventory name
+    add_host:
+      name: "{{ item }}"
+      ansible_host: "{{ item }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: ingress_lb
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['ingress_lb'] }}"
+    when: "'ansible_host' not in hostvars[item]"
+  
+  when: "'ingress_lb' in groups"

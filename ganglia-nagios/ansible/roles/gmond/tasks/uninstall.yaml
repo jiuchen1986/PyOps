@@ -27,7 +27,7 @@
   
   - name: Uninstall all gmond related packages
     apt:
-      name: 'ganglia-gmond*'
+      name: 'ganglia-monitor*'
       state: absent 
 
   when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
