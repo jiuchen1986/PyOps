@@ -44,6 +44,7 @@ The operations for a single cluster are designed to be applied using an inventor
 
 - Use explicitly defined the `ansible_host` variable with a ip address for each host if the inventory name is not ip address, or
 - Directly use ip addresses for the inventory names.
+- The groups without any hosts, e.g. the `ingress_lb` group, could just be omitted in the inventory file.
 
 ### Plan extra vars for the playbook
 In order to overwrite the variables' values in `group_vars/all.yaml`, variables for operations on the single cluster must be input using `-e` or `--extra-vars` when calling the playbook. The recognized variables for the current implementation are listed below:
