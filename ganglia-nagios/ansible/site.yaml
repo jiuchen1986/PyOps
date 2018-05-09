@@ -17,6 +17,7 @@
     with_items: "{{ cluster_list }}"
     loop_control:
       loop_var: cluster_item
+    when: act != "cluster_delete"
   - name: Dynamically create 'ganglia-nagios-server' host group when 'single_cluster' is defined
     add_host:
       name: "{{ ganglia_nagios_server }}"

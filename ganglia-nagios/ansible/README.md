@@ -90,20 +90,7 @@ or
 
     ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_delete" -e .... site.yaml
 
-**Notice**: The `cluster_uninstall` removes the gmond process and related files, including configuration and plugins, from each monitoring host in the cluster, while the `cluster_delete` only removes monitoring actions on the cluster from the monitoring server side. The `cluster_delete` can be used for the scenarios such as that all hosts of a cluster are shutdown, which the following parts in the `site.yaml` needs to be commented out before using:
-
-    # - hosts: clusters
-      # gather_facts: yes
-      # become: yes
-      # pre_tasks:
-      # - name: Prepare packages
-        # include_tasks: packages_prepare.yaml
-        # tags:
-        # - gmond
-        # when: act == 'install' or act == 'cluster_install'
-      # roles:
-      # - { role: gmond, tags: ['gmond'] }
-      # - { role: ganglia-nagios-client, tags: ['ganglia_nagios'] }
+**Notice**: The `cluster_uninstall` removes the gmond process and related files, including configuration and plugins, from each monitoring host in the cluster, while the `cluster_delete` only removes monitoring actions on the cluster from the monitoring server side. The `cluster_delete` can be used for the scenarios such as that all hosts of a cluster are shutdown.
 
 ## Add Monitoring To Multiple Clusters With/Without Installing The Monitoring Server
 This project supports add monitoring to the hosts bearing multiple kubernetes clusters, with or without the monitoring server has been setup.
