@@ -50,12 +50,13 @@ An example of the modified inventory file is given in a file named `single_clust
 - Use explicitly defined the `ansible_host` variable with a ip address for each host if the inventory name is not ip address, or
 - Directly use ip addresses for the inventory names.
 - The groups without any hosts, e.g. the `ingress_lb` group, could just be omitted in the inventory file.
+- SSH parameters required to connect to the hosts in the cluster, e.g. `ansible_user`, `ansible_ssh_pass`, or `ansible_become_pass`, add them into this inventory file too.
 
 ### Plan extra vars for the playbook
 In order to overwrite the variables' values in `group_vars/all.yaml`, variables for operations on the single cluster must be input using `-e` or `--extra-vars` when calling the playbook. The recognized variables for the current implementation are listed below:
 
 - **single_cluster**: the name of the current cluster
-- **ganglia\_nagios\_server**: a resolvable name or a reachable ip address of the installed monitoring server running ganglia-gmetad, ganglia-web and nagios core
+- **ganglia\_nagios\_server**: a resolvable name or a reachable ip address of the installed monitoring server running ganglia-gmetad, ganglia-web and nagios core. **Note** that if ssh parameters, such as `ansible_user`, `ansible_ssh_pass`, or `ansible_become_pass`, are required to connect to the server from the host running the playbooks, add these parameters into `group_vars/ganglia-nagios-server.yaml`
 - **gmond\_systemd\_check\_services**: the services needed to be monitored by the gmond on the monitoring host which are managed by the systemd 
 - **gmond\_cluster\_head**: the list of endpoints pointing to the heads of the cluster to which the ganglia-gmetad on the monitoring server will connect collecting monitoring data. The endpoints are composed as ip address plus port 
 - **gmond\_multicast\_port**: the port each ganglia-gmond on the monitored host is listening on. Must be identical to the one used in the **gmond\_cluster\_head**
