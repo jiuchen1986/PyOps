@@ -6,8 +6,10 @@ Basically, there is only one requirement needs to be fulfilled on the hosts in t
 
 Hence, if the connected DNS server can not help, the mapping between the ip address and the fqdn of each host in the monitoring cluster must be added manually to the `/etc/hosts` file on the cluster header.
 
-## Add Monitoring To A Single Erikube Cluster With The Installed Monitoring Server
-This project supports add monitoring to the hosts bearing a single erikube cluster, with a prerequisite that the monitoring server, i.e. a host running nagios-core, ganglia-gmetad and ganglia-web, has been setup.
+## Add Monitoring To A Single Cluster With The Installed Monitoring Server
+This project supports add monitoring to the hosts belonging to a single cluster, with an installed monitoring server, i.e. the host running nagios-core, ganglia-gmetad and ganglia-web, using a single inventory file along with several required variables input via commands line.
+
+Those operations targeting on a single cluster support 3 different types of the cluster, including the **kubespray**, the **erikube** and the **devenv** in which hosts running ubuntu.
 
 The actions taken for a single cluster are:
 
@@ -16,9 +18,9 @@ The actions taken for a single cluster are:
 - indicate ganglia-gmetad on the monitoring server to the head host of the cluster
 - add host and service definitions to the nagios-core on the monitoring server related to the metrics of hosts in the cluster
 
-### Prepare an erikube-like inventory file
+### Prepare an inventory file for a single cluster
 
-The operations for a single cluster are designed to be applied using an inventory file from the playbook installing erikube with a little modification. An example of the modified inventory file is given in a file named `erikube_test_hosts`:
+An example of the modified inventory file is given in a file named `single_cluster_test_hosts`:
 
     node1 ansible_host=10.xxx.xxx.30
     node2 ansible_host=10.xxx.xxx.31
@@ -55,41 +57,66 @@ In order to overwrite the variables' values in `group_vars/all.yaml`, variables 
 - **gmond\_cluster\_head**: the list of endpoints pointing to the heads of the cluster to which the ganglia-gmetad on the monitoring server will connect collecting monitoring data. The endpoints are composed as ip address plus port 
 - **gmond\_multicast\_port**: the port each ganglia-gmond on the monitored host is listening on. Must be identical to the one used in the **gmond\_cluster\_head**
 - **gmond\_systemd\_check\_services**: the list of systemd managing services whose status need to be collected by the ganglia gmond on the monitoring hosts
-- **cluster\_type**: the type of the cluster which can be used to distinguish application of different monitoring metrics. Current supports `kubespray` and `erikube`
+- **cluster\_type**: the type of the cluster which can be used to distinguish application of different monitoring metrics. Current supports `kubespray`, `erikube` and `devenv`
 
-Here gives an example of how to input the required variables using `-e` when calling the playbook:
+Here gives an example of how to input the required variables using `-e` when calling the playbook to operate on a single erikube cluster:
 
     ansible-playbook -i path_to_your_erikube-like_inventory_file \
-        -e "act=cluster_install" \
-        -e "single_cluster=cluster_name" \
+        -e "single_cluster=erikube_cluster_name" \
         -e "ganglia_nagios_server=localhost" \
         -e "{'gmond_systemd_check_services': ['kubelet', 'docker', 'etcd_container']}" \
-        -e "{'gmond_cluster_head': ['10.xxx.xxx.30:8662']}" \
-        -e "gmond_multicast_port=8662" \
+        -e "{'gmond_cluster_head': ['xxx.xxx.xxx.xxx:8661']}" \
+        -e "gmond_multicast_port=8661" \
         -e "cluster_type=erikube" \
+        -e "act=cluster_install" \
         site.yaml
+
+And an example to operate on a single devenv cluster is given as:
+
+    ansible-playbook -i ubuntu_hosts \
+        -e "single_cluster=devenv_cluster_name" \
+        -e "ganglia_nagios_server=xxx.xxx.xxx.xxx" \
+        -e "{'gmond_systemd_check_services': ['docker']}" \
+        -e "{'gmond_cluster_head': ['xxx.xxx.xxx.xxx:8662']}" \
+        -e "gmond_multicast_port=8662" \
+        -e "cluster_type=devenv" \
+        -e "act=cluster_install" \
+        site.yaml
+
+Then the example for a single kubespray cluster:
+
+    ansible-playbook -i ubuntu_hosts \
+        -e "single_cluster=devenv_cluster_name" \
+        -e "ganglia_nagios_server=xxx.xxx.xxx.xxx" \
+        -e "{'gmond_cluster_head': ['xxx.xxx.xxx.xxx:8663']}" \
+        -e "gmond_multicast_port=8663" \
+        -e "cluster_type=kubespray" \
+        -e "act=cluster_install" \
+        site.yaml
+
+**Notice** the differences on the input variables of `gmond_systemd_check_services` and `cluster_type` between above examples for different cluster types.
 
 The meaning of `-e "act=cluster_install"` will be described later.
 
 ### Setup monitoring for the cluster
 Completing the above steps, monitoring for the single cluster can be setup by executing:
 
-    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_install" -e .... site.yaml
+    ansible-playbook -i path_to_your_inventory_file -e "act=cluster_install" -e .... site.yaml
 
 ### Update monitoring configuration for the cluster
 Updating configurations for a single cluster also is supported, running:
 
-    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_update" -e .... site.yaml
+    ansible-playbook -i path_to_your_inventory_file -e "act=cluster_update" -e .... site.yaml
 
 
 ### Remove monitoring for the cluster
 Actions applied in the installation for a single cluster could be removed by running:
 
-    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_uninstall" -e .... site.yaml
+    ansible-playbook -i path_to_your_inventory_file -e "act=cluster_uninstall" -e .... site.yaml
 
 or
 
-    ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_delete" -e .... site.yaml
+    ansible-playbook -i path_to_your_inventory_file -e "act=cluster_delete" -e .... site.yaml
 
 **Notice**: The `cluster_uninstall` removes the gmond process and related files, including configuration and plugins, from each monitoring host in the cluster, while the `cluster_delete` only removes monitoring actions on the cluster from the monitoring server side. The `cluster_delete` can be used for the scenarios such as that all hosts of a cluster are shutdown.
 
@@ -110,8 +137,6 @@ Inform the names of all the clusters in a variable named `cluster_list` in `grou
     # a variable to list all clusters to be monitored, the name of cluster must be identical to the corresponding ansible host group name
     cluster_list:
     - goes
-    - earth
-    - calipso
 
 Note that the cluster's name must be identical to the name used for the ansible host group related to the cluster.
 
@@ -119,13 +144,13 @@ Note that the cluster's name must be identical to the name used for the ansible 
 Recommend that inventory files include one file for the monitoring server, with the group name as `ganglia-nagios-server`, and a separate inventory file for each cluster with the group name same to the cluster's name. For example:
 
     $ ls inventory/
-    calipso  earth  ganglia-nagios-server  goes 
+    ganglia-nagios-server  goes 
 
 An inventory file for a cluster is like:
     
-    [calipso]
-    10.210.123.[90:92] cluster_role=master
-    10.210.123.[93:99] cluster_role=worker
+    [goes]
+    10.xxx.xxx.[40:42] cluster_role=master
+    10.xxx.xxx.[43:50] cluster_role=worker
 
 The variable `cluster_role` is used to support cluster role aware nagios service definitions.
 
@@ -134,12 +159,9 @@ The variable `cluster_role` is used to support cluster role aware nagios service
 Besides to `group_vars/all.yaml` and `group_vars/ganglia-nagios-server.yaml`, a separate file for each cluster containing the variables for the hosts in the cluster can be defined. For example:
     
     ls group_vars/
-    all.yaml  calipso.yaml  earth.yaml  ganglia-nagios-server.yaml  goes.yaml
+    all.yaml  ganglia-nagios-server.yaml  goes.yaml
 
-A file for a cluster is like:
-
-    # the cluster name used for configuration of gmond, recommended to be identical to the ansible host group name
-    gmond_cluster_name: calipso   
+A file for a cluster is like:   
     
     # the nodes that are connected by gmetad 
     gmond_cluster_head:
@@ -149,7 +171,35 @@ A file for a cluster is like:
     
     gmond_multicast_port: 8663 
 
-For the meanings of variables, please read the comments in the file and refer to the description for the single cluster scenario. **Note that** a variable named `cluster_type` could be indicated if the type of cluster is not `kubespray`.
+For the meanings of variables, please read the comments in the file and refer to the description for the single cluster scenario. 
+
+**Note that**, with above group_vars file, the target cluster will be treated as a `kubespray` cluster. For other types of clusters, such as `erikube` or `devenv`, more variables are required to overwrite the default settings. For example of an `erikube` cluster, the vars file should be like:
+
+    # the nodes that are connected by gmetad 
+    gmond_cluster_head:
+    - "xxx.xxx.xxx.xxx:8664"
+    
+    gmond_multicast_port: 8664  
+    
+    gmond_systemd_check_services:
+    - kubelet
+    - docker
+    - etcd_container
+    
+    cluster_type: erikube
+
+And for a `devenv` cluster:
+
+    # the nodes that are connected by gmetad 
+    gmond_cluster_head:
+    - "xxx.xxx.xxx.xxx:8665"
+    
+    gmond_multicast_port: 8665  
+    
+    gmond_systemd_check_services:
+    - docker
+    
+    cluster_type: devenv
 
 ### Installation on multiple clusters and the monitoring server
 Completing the above steps, monitoring for multiple clusters and the monitoring server can be setup by executing:
@@ -195,3 +245,31 @@ This project supports add customized gmond python modules to monitoring hosts du
 - Put the Jinja2 template of the corresponding configuration file, with the suffix of `.pyconf.j2`, `<module_name>.pyconf.j2` in `roles/gmond/templates/conf.d/`.
 - Add the module's name `<module_name>` to the list variable `gmond_python_modules` in `group_vars/all.yaml`.
 - Run `ansible-playbook -i path_to_your_erikube-like_inventory_file -e "act=cluster_update" site.yaml` for a single erikube cluster, or `ansible-playbook -i inventory/ -e "act=cluster_update" site.yaml` for multiple target clusters.
+
+## Add New Nagios Checking Services Against Ganglia Metrics
+This project supports updating the nagios checking services against ganglia metrics multiple times. And with cluster only operations, e.g. `cluster_install`, `cluster_update`, `cluster_uninstall` and `cluster_delete`, there will be no impact on the old services set up for the non-target clusters.
+
+To do this, simply append a complex element to a list variable named `nagios_check_ganglia_metrics` at `group_vars/ganglia-nagios-server.yaml` file. For example:
+
+    nagios_check_ganglia_metrics:
+    - name: new_checking_metric
+      oper: more
+      warn_val: 5
+      crit_val: 7
+      cluster_role: master
+      cluster_type:
+      - kubespray
+      - erikube
+
+The meanings of members in the element are:
+
+- **name**: Name of the target metric observed in ganglia. The name of the corresponding checking service in nagios will be `<cluster_name>-check-ganglia-<metric_name>`. If the pointed metric is missing in ganglia, the nagios checking service will return an `unkown` status.
+- **oper**: Operator for the service to decide triggering alerts on the metric. Current implementations support `more` and `less`.
+- **warn_val**: Threshold value for triggering warning alerts on the metric. For `oper` equals `more`/`less`, a warning alert will be triggered if the value of the metric is larger/less than the value of `warn_val`. 
+- **crit_val**: Threshold value for triggering critical alerts on the metric. For `oper` equals `more`/`less`, a critical alert will be triggered if the value of the metric is larger/less than the value of `warn_val`. 
+- **cluster_role**: If this is set, the metric will only be checked on the hosts with the right cluster role, otherwise, the metric will be checked on all the hosts. Only `master` is meaningful for current implementations.
+- **cluster_type**: If this is set, the metric will only be checked on the clusters with a cluster type containing in this list variable, otherwise, the metric will be checked on all types of cluster.
+
+To cancel a checking on a metric, just remove the related element from the `nagios_check_ganglia_metrics` variable.
+
+After updating the `nagios_check_ganglia_metrics` variable, run the playbook with `act=cluster_install` or `act=cluster_update` if only to apply the updated checking service list on the target clusters, while leave the services unchanged on the non-target clusters, or with `act=update` to apply update on all existing clusters. 
