@@ -2,7 +2,7 @@
 This project provides Ansible playbooks to install Ganglia and Nagios to monitor the infrastructure bearing a single or multiple Kubernetes clusters.
 
 ## Cautions
-The playbooks in this project work under **ansible 2.4** and **python 2.7.5**, but break down under **ansible 2.5**. The problems are still under investigations. Therefore, please ensure that running this project with ansible 2.4 before the problems are solved.
+The playbooks in this project work under **ansible 2.4** and **python 2.7.5**, but break down under **ansible 2.5** due to ansible issue [https://github.com/ansible/ansible/issues/14166](https://github.com/ansible/ansible/issues/14166). So far the issue seams to not be fixed yet, Therefore, please ensure that running this project with ansible 2.4 before the ansible issue is fixed.
 
 ## Required Preparations On The Hosts in Monitoring Clusters
 Basically, there is only one requirement needs to be fulfilled on the hosts in the monitoring clusters. **The host acting as the header of a cluster must be able to resolve all the hosts' ip addresses from their fqdns in the clusters**. A cluster header is a host from which the ganglia gmetad on the monitoring server gets metric data of the cluster.
