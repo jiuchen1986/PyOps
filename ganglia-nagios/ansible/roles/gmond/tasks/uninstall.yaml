@@ -25,10 +25,19 @@
       enabled: no
     ignore_errors: yes
   
-  - name: Uninstall all gmond related packages
+  - name: Uninstall gmond python package
     apt:
-      name: 'ganglia-monitor*'
-      state: absent 
+      name: ganglia-monitor-python
+      state: absent
+      purge: yes
+      autoremove: yes
+  
+  - name: Uninstall gmond package
+    apt:
+      name: ganglia-monitor
+      state: absent
+      purge: yes
+      autoremove: yes
 
   when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 
