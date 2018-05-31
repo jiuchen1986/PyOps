@@ -19,6 +19,16 @@ An optional host group named `istioinstaller` can be defined in the inventory fi
 
 If the `istioinstaller` group is ignored or empty, the first host in the `master` group will be selected and added to `istioinstaller` group on run-time.
 
+For **specific user names and passwords related to ssh connections and sudo**, using `ansible_user`, `ansible_ssh_pass`, `ansible_become_pass` as group variables to specify in the inventory file. For example:
+
+    [master]
+    master01
+    master02
+    
+    [master:vars]
+    ansible_user=centos
+    ansible_become_pass=password
+
 ### Configure group variables
 Several configurable variables for the installation are listed in `group_vars/istioinstaller.yaml` as follows:
 
