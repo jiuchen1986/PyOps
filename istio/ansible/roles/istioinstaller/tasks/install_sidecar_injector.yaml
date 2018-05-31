@@ -12,6 +12,9 @@
   shell: ./webhook-create-signed-cert.sh --service istio-sidecar-injector --namespace istio-system --secret sidecar-injector-certs
   args:
     chdir: "{{ istio_kube_dir }}"
+  register: result
+  until: result is success
+  retries: 10
     
 - name: Install sidecar injection configmap
   shell: kubectl apply -f istio-sidecar-injector-configmap-release.yaml
