@@ -61,7 +61,7 @@ Several configurable variables for the installation are listed in `group_vars/is
     # path to the manifest file of API server on the master nodes
     api_server_manifest: /etc/kubernetes/manifests/kube-apiserver.yaml
 
-- **istio_version**: The version of Istio wanted. 0.5.0, 0.5.1, 0.6.0 have been tested.
+- **istio_version**: The version of Istio wanted. 0.5.0, 0.5.1, 0.6.0, 0.7.1 have been tested.
 - **root_dir**: The parent directory where the package of Istio wanted to be put in.
 - **istio_dir**: The root directory where the Istio's files locate. Do not modify this variable.
 - **istio_choice**: If `istio`, the Istio without pod-to-pod authentication will be installed, otherwise, `istio-auth` is required.
