@@ -7,6 +7,7 @@
     when: "'istioinstaller' not in groups or groups['istioinstaller'] | length == 0"
   
 - hosts: master
+  become: yes
   roles:
   - apiserver
 

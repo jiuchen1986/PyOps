@@ -17,12 +17,12 @@ An optional host group named `istioinstaller` can be defined in the inventory fi
     [istioinstaller]
     master02 
 
-If the `istioinstaller` group is ignored, the first host in the `master` group will be selected and added to `istioinstaller` group on run-time.
+If the `istioinstaller` group is ignored or empty, the first host in the `master` group will be selected and added to `istioinstaller` group on run-time.
 
 ### Configure group variables
 Several configurable variables for the installation are listed in `group_vars/istioinstaller.yaml` as follows:
 
-    istio_version: 0.5.0
+    istio_version: 0.7.1
     root_dir: /usr/local
     # do not change this
     istio_dir: "{{ root_dir }}/istio-{{ istio_version }}"
@@ -33,16 +33,45 @@ Several configurable variables for the installation are listed in `group_vars/is
     # auto or manual
     istio_sidecar_inject: auto
     
+    # indicate how to get the kubectl script and the kubeconfig file
+    # local: files are on istio installer locating at to where the kubectl_path and kubeconfig_path indicate
+    # fetch: files are on a remote host locating at to where the remote_kubectl_path and remote_kubeconfig_path indicate, and will be copyed to the istio installer
+    # url:   files can be downloaded from urls, which are descirbed by the url_kubectl and the url_kubeconfig, and saved to the istio installer
+    file_get: local
+    
+    # path to the directory where the kubectl executable script locates or to be saved when it is fetched from remote
     kubectl_path: /usr/local/bin
+    # path to the kubeconfig file for the kubectl locates or to be saved when it is fetched from remote
     kubeconfig_path: /etc/kubernetes/admin.conf
+    
+    # a remote host keeping the kubectl and the kubeconfig files
+    remote_file_host: c01-h01-master.maas
+    # user name to login to the remote host with ssh
+    remote_file_host_user: centos
+    # path to the directory where the kubectl executable script locates at a remote host
+    remote_kubectl_path: /usr/local/bin
+    # path to the kubeconfig file for the kubectl locates at a remote host
+    remote_kubeconfig_path: /etc/kubernetes/admin.conf
+    
+    # url where the kubectl executable script can be downloaded
+    url_kubectl: http://example.com/kubectl
+    # url where the kubeconfig file for the kubectl can be downloaded
+    url_kubeconfig: http://example.com/kubeconfig
+    
+    # path to the manifest file of API server on the master nodes
+    api_server_manifest: /etc/kubernetes/manifests/kube-apiserver.yaml
 
 - **istio_version**: The version of Istio wanted. 0.5.0, 0.5.1, 0.6.0 have been tested.
 - **root_dir**: The parent directory where the package of Istio wanted to be put in.
 - **istio_dir**: The root directory where the Istio's files locate. Do not modify this variable.
 - **istio_choice**: If `istio`, the Istio without pod-to-pod authentication will be installed, otherwise, `istio-auth` is required.
 - **istio\_sidecar\_inject**: If `auto`, the automated sidecar injection will be enabled, otherwise, `manual` is required.
-- **kubectl_path**: The path to the `kubectl` executable on the host as installer for Istio.
-- **kubeconfig_path**: The path to a configuration file on the installer host that enables the `kubectl` to access to the api server of the target Kubernetes cluster.
+- **file_get**: Indicate where to get the `kubectl` and the `kubeconfig` file, including `local` that the files locate on the host running as `istioisntaller`, `fetch` which indicates fetching files from a remote host, and `url` indicating downloading files from a url. **Currently only `local` is fully tested, don't use others.**
+- **kubectl_path**: The path to the directory containing the `kubectl` executable on the host as installer for Istio when `file_get` is `local`.
+- **kubeconfig_path**: The path to a configuration file on the installer host when `file_get` is `local`, that enables the `kubectl` to access to the api server of the target Kubernetes cluster.
+- **api\_server\_manifest**: The path to the manifest file of apiserver on the master hosts.
+
+**Notice: please ensure that the group variables of `kubectl_path`, `kubeconfig_path`, and `api_server_manifest` are correctly configured.**
 
 ### Install Istio
 Completing the above steps, Istio could be installed by running:
@@ -58,7 +87,7 @@ Note that the `clean.yaml` will remove the 'MutatingAdmissionWebhook' and the 'V
     remove_mut_flag: yes
     remove_val_flag: yes
 
-## Notice
+## Cautions
 - The task `Install istio core components` in playbook `install.yaml` may fail sometimes. Just rerun the playbook again, all the tasks should success.
 - Do not label the `default` namespace with `istio-injection` on the target Kubernetes cluster before running the installation.
 - Any operation beyond the `install.yaml` will not be cleaned by running the `clean.yaml` playbook.
