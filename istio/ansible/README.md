@@ -30,7 +30,7 @@ For **specific user names and passwords related to ssh connections and sudo**, u
     ansible_become_pass=password
 
 ### Configure group variables
-Several configurable variables for the installation are listed in `group_vars/istioinstaller.yaml` as follows:
+Several configurable variables for the installation are listed in `group_vars/all.yaml` as follows:
 
     istio_version: 0.7.1
     root_dir: /usr/local
