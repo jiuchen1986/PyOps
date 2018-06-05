@@ -1,5 +1,6 @@
 # Automated Istio Installation on Kubernetes
 This project provides Ansible playbooks to install Istio 0.5.0+ on Kubernetes 1.9+.
+
 The current supported version of Istio:
 
 - 0.5.0

@@ -1,9 +1,15 @@
 # tasks to install istio core components
+- name: Check existence of the istio-system namespace
+  shell: kubectl get ns istio-system
+  register: ns_ex
+  ignore_errors: yes
+
 - name: Create istio-system namespace
   shell: kubectl create namespace istio-system
   register: result_ns
   until: result_ns is success
   retries: 10
+  when: ns_ex is failed and istio_version == "0.8.0"
  
 - name: Install istio core components
   shell: kubectl create -f {{ istio_choice }}.yaml

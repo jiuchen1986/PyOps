@@ -40,7 +40,7 @@
   when: istio_choice == "istio"
 
 - block:
-  - name: Generate istio yaml file with helm with auto inject
+  - name: Generate istio-auth yaml file with helm with auto inject
     shell: helm template helm/istio --name istio --namespace istio-system --set global.mtls.enabled=true > ./istio-auth.yaml
     args:
       chdir: "{{ istio_kube_dir }}"
@@ -48,7 +48,7 @@
       PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
     when: istio_sidecar_inject == "auto"
     
-  - name: Generate istio yaml file with helm without auto inject
+  - name: Generate istio-auth yaml file with helm without auto inject
     shell: helm template helm/istio --name istio --namespace istio-system --set sidecarInjectorWebhook.enabled=false --set global.mtls.enabled=true > ./istio-auth.yaml
     args:
       chdir: "{{ istio_kube_dir }}"
