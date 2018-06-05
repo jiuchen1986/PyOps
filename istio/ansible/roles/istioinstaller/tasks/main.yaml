@@ -1,9 +1,38 @@
----
+- name: Download istio package
+  become: yes
+  get_url:
+    url: "{{ istio_download_url }}"
+    dest: "{{ istio_package_path }}"
+
+- name: Unpack istio package
+  become: yes
+  unarchive:
+    src: "{{ istio_package_path }}"
+    dest: "{{ root_dir }}"
+    remote_src: yes
+
+- block:
+  - name: Generate yaml file for istio core components
+    become: yes
+    include: gen_istio_yaml_with_helm.yaml
+
+  when: istio_version == "0.8.0"
+
 - name: Install istio core components
   become: yes
-  include_tasks: install_istio_core.yaml
+  include: install_istio_core.yaml
 
-- name: Install istio sidecar auto injector
-  become: yes
-  when: istio_sidecar_inject == auto
-  include_tasks: install_sidecar_injector.yaml
+- block:
+  - name: Install istio sidecar auto injector
+    become: yes
+    include_tasks: install_sidecar_injector.yaml
+    when: istio_sidecar_inject == auto
+
+  when: (istio_version == "0.5.0") or
+        (istio_version == "0.5.1") or
+        (istio_version == "0.6.0") or
+        (istio_version == "0.7.0") or
+        (istio_version == "0.7.1")
+        
+- name: Set the default namespace to use auto injection
+  shell: kubectl label namespace default istio-injection=enabled

@@ -1,0 +1,59 @@
+# tasks to generate yaml file of istio core components using helm
+- name: Check installation of helm
+  shell: helm --help
+  register: result
+  ignore_errors: yes
+
+- block:
+  - name: Mkdir for helm download
+    file:
+      path: "{{ helm_dir }}"
+      state: directory
+  - name: Download helm install script 
+    get_url:
+      url: "{{ helm_install_script_url }}"
+      dest: "{{ helm_install_script }}"
+      mode: 0744
+  
+  - name: Install helm
+    shell: "{{ helm_install_script }}"
+  
+  when: result is failed
+
+- block:
+  - name: Generate istio yaml file with helm with auto inject
+    shell: helm template helm/istio --name istio --namespace istio-system > ./istio.yaml
+    args:
+      chdir: "{{ istio_kube_dir }}"
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
+    when: istio_sidecar_inject == "auto"
+    
+  - name: Generate istio yaml file with helm without auto inject
+    shell: helm template helm/istio --name istio --namespace istio-system --set sidecarInjectorWebhook.enabled=false > ./istio.yaml
+    args:
+      chdir: "{{ istio_kube_dir }}"
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
+    when: istio_sidecar_inject == "manual"
+    
+  when: istio_choice == "istio"
+
+- block:
+  - name: Generate istio yaml file with helm with auto inject
+    shell: helm template helm/istio --name istio --namespace istio-system --set global.mtls.enabled=true > ./istio-auth.yaml
+    args:
+      chdir: "{{ istio_kube_dir }}"
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
+    when: istio_sidecar_inject == "auto"
+    
+  - name: Generate istio yaml file with helm without auto inject
+    shell: helm template helm/istio --name istio --namespace istio-system --set sidecarInjectorWebhook.enabled=false --set global.mtls.enabled=true > ./istio-auth.yaml
+    args:
+      chdir: "{{ istio_kube_dir }}"
+    environment:
+      PATH: "{{ ansible_env.PATH }}:/usr/local/bin"
+    when: istio_sidecar_inject == "manual"
+    
+  when: istio_choice == "istio-auth"

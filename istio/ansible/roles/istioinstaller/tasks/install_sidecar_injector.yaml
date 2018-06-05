@@ -30,6 +30,3 @@
   shell: kubectl apply -f istio-sidecar-injector-with-ca-bundle.yaml
   args:
     chdir: "{{ istio_kube_dir }}"
-    
-- name: Set the default namespace to use auto injection
-  shell: kubectl label namespace default istio-injection=enabled

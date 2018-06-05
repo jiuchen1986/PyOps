@@ -7,6 +7,10 @@ istio_package_path: "{{ root_dir }}/{{ istio_package }}"
 istio_dir: "{{ root_dir }}/istio-{{ istio_version }}"
 istio_kube_dir: "{{ istio_dir }}/install/kubernetes"
 
+helm_install_script_url: https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get
+helm_dir: "{{root_dir}}/helm"
+helm_install_script: "{{helm_dir}}/helm_install.sh"
+
 missing_script_paths:
 - "https://raw.githubusercontent.com/istio/istio/{{ istio_version }}/install/kubernetes/webhook-create-signed-cert.sh" 
 - "https://raw.githubusercontent.com/istio/istio/{{ istio_version }}/install/kubernetes/webhook-patch-ca-bundle.sh"

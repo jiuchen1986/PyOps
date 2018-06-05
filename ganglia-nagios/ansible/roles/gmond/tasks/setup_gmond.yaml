@@ -39,10 +39,11 @@
   with_items: "{{ gmond_python_modules }}"
 
 - name: Enable and start gmond with systemd
-  systemd:
-    name: gmond
-    state: started
-    enabled: yes
+  # systemd:
+    # name: gmond
+    # state: started
+    # enabled: yes
+  shell: systemctl enable gmond && systemctl start gmond
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
   
 - name: Enable and start gmond with systemd

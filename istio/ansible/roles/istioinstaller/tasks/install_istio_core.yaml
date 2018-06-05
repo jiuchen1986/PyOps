@@ -1,18 +1,12 @@
 # tasks to install istio core components
-
-- name: Download istio package
-  get_url:
-    url: "{{ istio_download_url }}"
-    dest: "{{ istio_package_path }}"
-
-- name: Unpack istio package
-  unarchive:
-    src: "{{ istio_package_path }}"
-    dest: "{{ root_dir }}"
-    remote_src: yes
+- name: Create istio-system namespace
+  shell: kubectl create namespace istio-system
+  register: result_ns
+  until: result_ns is success
+  retries: 10
  
 - name: Install istio core components
-  shell: kubectl apply -f {{ istio_choice }}.yaml
+  shell: kubectl create -f {{ istio_choice }}.yaml
   args:
     chdir: "{{ istio_kube_dir }}"
   register: result
