@@ -14,6 +14,21 @@
       marker: "# {mark} add master host {{ ansible_fqdn }}"
     when: cluster_role == 'master'
     
+  - name: Create cluster head host definition and override the master host definition
+    blockinfile:
+      path: /etc/nagios/conf.d/{{ item }}_hosts.cfg
+      block: |
+        define host {
+          use {{ item }}-head-host
+          host_name {{ ansible_fqdn }}
+          address {{ inventory_hostname }}
+        }
+      marker: "# {mark} add master host {{ ansible_fqdn }}"
+    when: (gmond_cluster_head[0].split(':')[0] == ansible_ens192.ipv4.address) or
+          (gmond_cluster_head[0].split(':')[0] == ansible_host) or
+          (gmond_cluster_head[0].split(':')[0] == inventory_hostname) or
+          (gmond_cluster_head[0].split(':')[0] == ansible_hostname)
+    
   - name: Create host definition
     blockinfile:
       path: /etc/nagios/conf.d/{{ item }}_hosts.cfg

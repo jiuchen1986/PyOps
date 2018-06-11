@@ -1,0 +1,28 @@
+# tasks to delete nagios contacts on monitoring hosts
+
+- block:
+  
+  - name: Delete each contact from contacts file
+    blockinfile:
+      path: /etc/nagios/objects/contacts.cfg
+      state: absent
+      block: |
+        define contact{
+          contact_name                   {{ item.contact_name }}	
+          use                            generic-contact		
+          alias                          {{ item.alias | default(item.contact_name) }}		
+          service_notification_options   {{ item.service_notification_options | default('u,c,r') }}
+          host_notification_options      {{ item.host_notification_options | default('d,u,r') }}
+          email                          {{ item.email }}
+        }
+      marker: "# {mark} add contact {{ item.contact_name }}"
+    with_items: "{{ nagios_contacts }}"
+      
+  - name: Restart nagios core with systemd
+    systemd:
+      name: nagios
+      state: restarted
+      enabled: yes
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

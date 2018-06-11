@@ -1,0 +1,17 @@
+# tasks to add contacts to default admin group of nagios contacts on monitoring hosts
+# make sure the users listed in 'nagios_admin_contacts' have already been added
+
+- block:
+  
+  - name: Add contacts to default admin group
+    include_tasks: add_admin_contacts.yaml
+    with_items: "{{ nagios_admin_contacts }}"
+      
+  - name: Restart nagios core with systemd
+    systemd:
+      name: nagios
+      state: restarted
+      enabled: yes
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

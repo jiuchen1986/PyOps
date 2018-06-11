@@ -1,0 +1,16 @@
+# add each cluster contact to the cluster contact group
+
+- block:
+
+  - name: Generate a contact group
+    template:
+      src: cluster_contact_group.cfg.j2
+      dest: /etc/nagios/conf.d/{{ cluster_item }}_contacts.cfg
+      mode: 0644
+  
+  - name: Add contact to the contact group
+    include_tasks: add_cluster_contacts.yaml
+    with_items: "{{ hostvars[groups[cluster_item][0]]['cluster_contacts'] | default([]) }}"
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

@@ -1,0 +1,15 @@
+# add each cluster contact to the cluster contact group
+
+- block:
+  
+  - name: Add contact to the contact group
+    include_tasks: add_cluster_contacts.yaml
+    with_items: "{{ hostvars[groups[cluster_item][0]]['cluster_contacts'] | default([]) }}"
+    
+  - name: Restart nagios with systemd
+    systemd:
+      name: nagios
+      state: restarted
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

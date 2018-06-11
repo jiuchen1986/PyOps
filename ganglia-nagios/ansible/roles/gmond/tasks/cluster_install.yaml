@@ -10,3 +10,8 @@
   become: yes
   include_tasks: setup_gmond.yaml
   when: result.stdout == ""
+  
+- name: Update gmond
+  become: yes
+  include_tasks: cluster_update.yaml
+  when: result.stdout != ""

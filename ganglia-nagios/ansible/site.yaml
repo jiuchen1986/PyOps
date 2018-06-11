@@ -52,7 +52,10 @@
       tasks_from: create_blank_host_definitions.yaml
     tags:
     - ganglia_nagios
-    when: act != 'uninstall' and act != 'cluster_uninstall'
+    when: act != 'uninstall' and
+          act != 'cluster_uninstall' and
+          act != 'cluster_contacts_add' and
+          act != 'cluster_contacts_delete'
   
 - hosts: clusters
   gather_facts: yes

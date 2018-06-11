@@ -1,0 +1,33 @@
+# playbook for helping to add hostname information of all hosts in a cluster to the '/etc/hosts' on the host running as the cluster head
+# things need to do to use this playbook:
+## 1. put a reachable name or ip address of pointing to the target cluster head in the variable 'target'
+## 2. put the mappings between the ip address and the hostname of all the hosts in the target cluster in the dict variable 'host_maps'
+## 3. run this playbook without any inventory file
+
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    target: xxx.xxx.xxx.xxx
+  tasks:
+  - name: Add target cluster head
+    add_host:
+      name: "{{ target }}"
+      ###### variables for ssh connected such as ansible_user, ansible_become_pass may need to be added here in future
+      groups: target
+  
+- hosts: target
+  become: yes
+  vars:
+    host_maps:
+      xxx.xxx.xxx.xxx: host1.com
+      xxx.xxx.xxx.xxx: host2.com
+  tasks:
+  - name: Add hostnames info to hosts file on the target host
+    lineinfile:
+      path: /etc/hosts
+      line: '{{ item.key }}    {{ item.value }}'
+      owner: root
+      group: root
+      mode: 0644
+    with_dict: "{{ host_maps }}"

@@ -41,16 +41,27 @@ nagios_web_admin_password: admin
 nagios_web_auth_file: /etc/nagios/http.auth
 
 # contacts information used in nagios
+# some elements can be optional with default values:
+# alias: identical to contact_name by default
+# service_notification_options: 'u,c,r' by default
+# host_notification_options: 'd,u,r' by default
 nagios_contacts:
-- contactgroup_name: admins
-  alias: Nagios Administrators
-  members:
-  - contact_name: "{{ nagios_admin_username }}"
-    alias: Nagios Admin
-    email: "{{ nagios_admin_email }}"
-    service_notification_options: w,u,c,r,f,s
-    host_notification_options: d,u,r,f,s
+- contact_name: xxx
+  alias: xxx
+  email: xxx
+  service_notification_options: w,u,c,r,f,s
+  host_notification_options: d,u,r,f,s
 
+# names of the contacts in the admin group
+nagios_admin_contacts:
+- xxx
+
+# the cluster roles could be recogonized when deploy services
+nagios_check_cluster_roles:
+- master
+- worker
+- lb
+- etcd
 
 
 # path to the plugins used by nagios to check on ganglia
@@ -112,4 +123,7 @@ nagios_check_ganglia_metrics:
   cluster_role: master
   cluster_type:
   - erikube
+ 
+# services checked targeting only on the host running as the head of the cluster
+nagios_check_ganglia_head_metrics: []
     

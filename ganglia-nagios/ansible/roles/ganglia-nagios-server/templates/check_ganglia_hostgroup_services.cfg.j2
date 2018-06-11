@@ -11,10 +11,17 @@ define hostgroup {
   alias {{ cluster_item }} cluster masters
 }
 
+# a host group only containing the head of a cluster
+define hostgroup {
+  hostgroup_name {{ cluster_item }}-head
+  alias {{ cluster_item }} cluster head
+}
+
 define host {
   name {{ cluster_item }}-host
   use linux-server
   hostgroups {{ cluster_item }}
+  contact_groups admins,{{ cluster_item }}-contacts
   register 0
 }
 
@@ -23,6 +30,16 @@ define host {
   name {{ cluster_item }}-master-host
   use linux-server
   hostgroups {{ cluster_item }},{{ cluster_item }}-master
+  contact_groups admins,{{ cluster_item }}-contacts
+  register 0
+}
+
+# host representing the head node
+define host {
+  name {{ cluster_item }}-head-host
+  use linux-server
+  hostgroups {{ cluster_item }},{{ cluster_item }}-master,{{ cluster_item }}-head
+  contact_groups admins,{{ cluster_item }}-contacts
   register 0
 }
 
@@ -30,6 +47,7 @@ define service {
   use check-ganglia-heartbeat
   hostgroup_name {{ cluster_item }}
   service_description {{ cluster_item }}-check-ganglia-heartbeat
+  contact_groups admins,{{ cluster_item }}-contacts
 }
 
 {% set host_cluster_type = hostvars[groups[cluster_item][0]]['cluster_type'] %}
@@ -53,6 +71,7 @@ define service {
   use check-ganglia-{{ metric.name }}
   hostgroup_name {{ cluster_item }}-master
   service_description {{ cluster_item }}-check-ganglia-{{ metric.name }}
+  contact_groups admins,{{ cluster_item }}-contacts
 }
 
 {% else %}
@@ -60,9 +79,28 @@ define service {
   use check-ganglia-{{ metric.name }}
   hostgroup_name {{ cluster_item }}
   service_description {{ cluster_item }}-check-ganglia-{{ metric.name }}
+  contact_groups admins,{{ cluster_item }}-contacts
 }
 
 {% endif %}
+{% endif %}
+{% endfor %}
+
+{% for metric in nagios_check_ganglia_head_metrics %}  
+{% if 'cluster_type' in metric %}
+{% set metric_cluster_type = metric.cluster_type %}
+{% else %}
+{% set metric_cluster_type = [] %}
+{% endif %}
+  
+{% if host_cluster_type in metric_cluster_type or metric_cluster_type == [] %}
+define service {
+  use check-ganglia-{{ metric.name }}
+  hostgroup_name {{ cluster_item }}-head
+  service_description {{ cluster_item }}-check-ganglia-{{ metric.name }}
+  contact_groups admins,{{ cluster_item }}-contacts
+}
+
 {% endif %}
 {% endfor %}
 

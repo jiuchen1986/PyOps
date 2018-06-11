@@ -33,3 +33,19 @@ define service {
 
 {% endfor %}
 
+{% for cluster in {{ cluster_list }} %}
+{% for metric in nagios_check_ganglia_head_metrics|default([]) %}
+define service {
+  use local-service
+  name check-ganglia-{{ metric.name }}
+  service_groups ganglia-metrics
+  notifications_enabled 1
+  check_interval {{ nagios_check_ganglia_check_interval }}
+  notification_interval {{ nagios_check_ganglia_notification_interval }}
+  check_command check_ganglia_metric!{{ metric.name }},{{ metric.oper }},{{ metric.warn_val }},{{ metric.oper }},{{ metric.crit_val }}
+  register 0
+}
+
+{% endfor %}
+{% endfor %}
+

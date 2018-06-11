@@ -1,0 +1,26 @@
+
+- block:
+  
+  - name: Check the existence of the contact
+    become: yes
+    shell: grep 'contact_name                   {{ item }}' /etc/nagios/objects/contacts.cfg
+    register: check_result
+    ignore_errors: yes
+    
+  - name: Fail the play if the contact is absent
+    fail: msg="Contact '{{ item }}' doesn't exist, please add the contact first"
+    when: check_result is failed
+  
+  - name: Check whether the contact has already been in the cluster group
+    become: yes
+    shell: grep '{{ item }}' /etc/nagios/conf.d/{{ cluster_item }}_contacts.cfg
+    register: result
+    ignore_errors: yes
+  
+  - name: Add contact to the cluster group
+    become: yes
+    shell: sed -i 's/members                 {{ nagios_admin_username }}/members                 {{ nagios_admin_username }},{{ item }}/g' /etc/nagios/conf.d/{{ cluster_item }}_contacts.cfg
+    when: result is failed
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

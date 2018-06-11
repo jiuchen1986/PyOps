@@ -1,0 +1,7 @@
+# contact group template for the cluster
+
+define contactgroup {
+  contactgroup_name       {{ cluster_item }}-contacts
+  alias                   {{ cluster_item }} contact group
+  members                 {{ nagios_admin_username }}
+}

@@ -1,0 +1,15 @@
+- block:
+  
+  - name: Check whether the contact has already been in the cluster group
+    become: yes
+    shell: grep '{{ item }}' /etc/nagios/conf.d/{{ cluster_item }}_contacts.cfg
+    register: result
+    ignore_errors: yes
+  
+  - name: Delete contact from the admin group
+    become: yes
+    shell: sed -i 's/,{{ item }}//g' /etc/nagios/conf.d/{{ cluster_item }}_contacts.cfg
+    when: result is succeeded
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

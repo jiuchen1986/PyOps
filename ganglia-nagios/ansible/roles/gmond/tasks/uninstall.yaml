@@ -12,7 +12,11 @@
   - name: Uninstall all gmond related packages
     yum:
       name: 'ganglia*'
-      state: absent 
+      state: absent
+      
+  - name: Remove all python modules
+    become: yes
+    shell: rm -rf /usr/lib64/ganglia/python_modules/*
 
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
   
@@ -38,6 +42,14 @@
       state: absent
       purge: yes
       autoremove: yes
+      
+  - name: Remove all python modules
+    become: yes
+    shell: rm -rf /usr/lib/ganglia/python_modules/*
 
   when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  
+- name: Remove all pyconf files
+  become: yes
+  shell: rm -rf /etc/ganglia/conf.d/*
 

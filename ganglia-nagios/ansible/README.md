@@ -58,7 +58,7 @@ In order to overwrite the variables' values in `group_vars/all.yaml`, variables 
 - **single_cluster**: the name of the current cluster
 - **ganglia\_nagios\_server**: a resolvable name or a reachable ip address of the installed monitoring server running ganglia-gmetad, ganglia-web and nagios core. **Note** that if ssh parameters, such as `ansible_user`, `ansible_ssh_pass`, or `ansible_become_pass`, are required to connect to the server from the host running the playbooks, add these parameters into `group_vars/ganglia-nagios-server.yaml`
 - **gmond\_systemd\_check\_services**: the services needed to be monitored by the gmond on the monitoring host which are managed by the systemd 
-- **gmond\_cluster\_head**: the list of endpoints pointing to the heads of the cluster to which the ganglia-gmetad on the monitoring server will connect collecting monitoring data. The endpoints are composed as ip address plus port 
+- **gmond\_cluster\_head**: the list of endpoints pointing to the heads of the cluster to which the ganglia-gmetad on the monitoring server will connect collecting monitoring data. The endpoints are composed as ip address plus port. **The heads MUST be also master nodes in the cluster**
 - **gmond\_multicast\_port**: the port each ganglia-gmond on the monitored host is listening on. Must be identical to the one used in the **gmond\_cluster\_head**
 - **gmond\_systemd\_check\_services**: the list of systemd managing services whose status need to be collected by the ganglia gmond on the monitoring hosts
 - **cluster\_type**: the type of the cluster which can be used to distinguish application of different monitoring metrics. Current supports `kubespray`, `erikube` and `devenv`
@@ -90,7 +90,7 @@ And an example to operate on a single devenv cluster is given as:
 Then the example for a single kubespray cluster:
 
     ansible-playbook -i ubuntu_hosts \
-        -e "single_cluster=devenv_cluster_name" \
+        -e "single_cluster=kubespray_cluster_name" \
         -e "ganglia_nagios_server=xxx.xxx.xxx.xxx" \
         -e "{'gmond_cluster_head': ['xxx.xxx.xxx.xxx:8663']}" \
         -e "gmond_multicast_port=8663" \
@@ -116,11 +116,11 @@ Updating configurations for a single cluster also is supported, running:
 ### Remove monitoring for the cluster
 Actions applied in the installation for a single cluster could be removed by running:
 
-    ansible-playbook -i path_to_your_inventory_file -e "act=cluster_uninstall" -e .... site.yaml
+    ansible-playbook -i path_to_your_inventory_file -e "act=cluster_uninstall" -e "single_cluster=cluster_name" -e "ganglia_nagios_server=xxx.xxx.xxx.xxx" site.yaml
 
 or
 
-    ansible-playbook -i path_to_your_inventory_file -e "act=cluster_delete" -e .... site.yaml
+    ansible-playbook -i path_to_your_inventory_file -e "act=cluster_delete" -e "single_cluster=cluster_name" -e "ganglia_nagios_server=xxx.xxx.xxx.xxx" site.yaml
 
 **Notice**: The `cluster_uninstall` removes the gmond process and related files, including configuration and plugins, from each monitoring host in the cluster, while the `cluster_delete` only removes monitoring actions on the cluster from the monitoring server side. The `cluster_delete` can be used for the scenarios such as that all hosts of a cluster are shutdown.
 
@@ -270,8 +270,35 @@ The meanings of members in the element are:
 - **warn_val**: Threshold value for triggering warning alerts on the metric. For `oper` equals `more`/`less`, a warning alert will be triggered if the value of the metric is larger/less than the value of `warn_val`. 
 - **crit_val**: Threshold value for triggering critical alerts on the metric. For `oper` equals `more`/`less`, a critical alert will be triggered if the value of the metric is larger/less than the value of `warn_val`. 
 - **cluster_role**: If this is set, the metric will only be checked on the hosts with the right cluster role, otherwise, the metric will be checked on all the hosts. Only `master` is meaningful for current implementations.
-- **cluster_type**: If this is set, the metric will only be checked on the clusters with a cluster type containing in this list variable, otherwise, the metric will be checked on all types of cluster.
+- **cluster_type**: If this is set, the metric will only be checked on the clusters with a cluster type contained in this list variable, otherwise, the metric will be checked on all types of cluster.
 
 To cancel a checking on a metric, just remove the related element from the `nagios_check_ganglia_metrics` variable.
 
-After updating the `nagios_check_ganglia_metrics` variable, run the playbook with `act=cluster_install` or `act=cluster_update` if only to apply the updated checking service list on the target clusters, while leave the services unchanged on the non-target clusters, or with `act=update` to apply update on all existing clusters. 
+After updating the `nagios_check_ganglia_metrics` variable, run the playbook with `act=cluster_install` or `act=cluster_update` if only to apply the updated checking service list on the target clusters, while leave the services unchanged on the non-target clusters, or with `act=update` to apply update on all existing clusters.
+
+## Cluster Scale-Out
+When a cluster needs a scale-out, i.e. add new nodes to the cluster, do the following steps:
+
+- Prepare an inventory file containing both the old hosts and the newly added hosts
+- Run the playbook with `act=cluster_install` and the prepared inventory file
+
+After executions, monitoring for the newly added hosts will be setup, while configurations on the old hosts will be updated according to the values of configurable variables of the playbook.
+
+Make sure the **cluster's name is unchanged**.
+
+These work for both the single cluster and the multiple clusters cases with proper inventory files.
+
+## Cluster Scale-In
+When a cluster needs a scale-in, i.e. remove nodes from the cluster, do the following steps:
+
+- Prepare an inventory file containing the remain hosts
+- Run the playbook with `act=cluster_delete` and the prepared inventory file
+- Run the playbook with `act=cluster_update` and the prepared inventory file
+
+After executions, monitoring for the removed hosts will be absent, while configurations on the remain hosts will be updated according to the values of configurable variables of the playbook.
+
+Make sure the **variable `gmond_cluster_head` is correctly pointed to one of the remain hosts when run the playbook with `act=cluster_update`**.
+
+These work for both the single cluster and the multiple clusters cases with proper inventory files.
+
+**Note that** the removed nodes maybe treated as being offline in Ganglia, while in Nagios just being removed without alerts.

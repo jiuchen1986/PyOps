@@ -1,0 +1,12 @@
+# tasks to define contact group for each cluster
+
+- block:
+
+  - name: Generate a contact group for each cluster
+    include_tasks: add_cluster_contact_group.yaml
+    with_items: "{{ cluster_list }}"
+    loop_control:
+      loop_var: cluster_item
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

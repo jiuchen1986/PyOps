@@ -17,6 +17,16 @@ cluster_type: kubespray
 gmond_python_modules:
 - systemd_stats
 - mem_stats
+- netstats
+
+# list of names of other files required by the customized modules
+gmond_python_modules_attachs: []
+
+# gmond python modules that only deployed on the host running as the head of the cluster
+gmond_head_python_modules: []
+
+# list of names of other files required by the customized modules for the head
+gmond_head_python_modules_attachs: []
 
 # list services managed by systemd on the monitored hosts which are checked, could be overwrited in the group's vars
 gmond_systemd_check_services:

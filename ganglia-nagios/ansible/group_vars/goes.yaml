@@ -1,9 +1,12 @@
 ---
 known_domain: ""  
 
+# the contact list that only receive notifications related to the current cluster
+cluster_contacts: []
+
 # the nodes that are connected by gmetad                     
 gmond_cluster_head:
-- "xxx.xxx.xxx.xxx:8661" 
+- "xxx.xxx.xxx.xxx:8661"
   
 gmond_mode: multicast
 
