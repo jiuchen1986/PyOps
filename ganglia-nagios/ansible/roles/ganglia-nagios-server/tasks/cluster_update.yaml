@@ -1,6 +1,5 @@
 ---
-- include_tasks: "define_services.yaml"
-- include_tasks: "define_hostgroups_services.yaml"
+- include_tasks: "define_hostgroup_servicegroup.yaml"
 - include_tasks: "define_contact_group.yaml"
 
 - name: Restart nagios with systemd

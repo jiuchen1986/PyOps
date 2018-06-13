@@ -16,5 +16,7 @@
     outer_ansible_distribution: "{{ hostvars[outer_item]['ansible_distribution'] }}"
   include_tasks: "create_host_definition.yaml"       
   with_items: "{{ cluster_list }}"
-  when: "item in group_names"
+  loop_control:
+    loop_var: cluster_item
+  when: cluster_item in group_names
 

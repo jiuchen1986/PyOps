@@ -1,11 +1,11 @@
-# tasks to define host groups and related services checked via ganglia
+# tasks to define host group and related service group checked via ganglia
 
 - block:
 
   - name: Generate config files for each host group and related services definitions
     template:
-      src: check_ganglia_hostgroup_services.cfg.j2
-      dest: /etc/nagios/conf.d/{{ cluster_item }}_hostgroup_services.cfg
+      src: check_ganglia_hostgroup_servicegroup.cfg.j2
+      dest: /etc/nagios/conf.d/{{ cluster_item }}_hostgroup_servicegroup.cfg
     with_items: "{{ cluster_list }}"
     loop_control:
       loop_var: cluster_item

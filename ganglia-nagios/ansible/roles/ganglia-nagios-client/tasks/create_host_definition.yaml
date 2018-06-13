@@ -2,44 +2,91 @@
 
 - block:
   
-  - name: Create master host definition
+  - name: Create host definition in cluster-all host group
     blockinfile:
-      path: /etc/nagios/conf.d/{{ item }}_hosts.cfg
+      path: /etc/nagios/conf.d/{{ cluster_item }}_hosts.cfg
       block: |
         define host {
-          use {{ item }}-master-host
-          host_name {{ ansible_fqdn }}
-          address {{ inventory_hostname }}
-        }
-      marker: "# {mark} add master host {{ ansible_fqdn }}"
-    when: cluster_role == 'master'
-    
-  - name: Create cluster head host definition and override the master host definition
-    blockinfile:
-      path: /etc/nagios/conf.d/{{ item }}_hosts.cfg
-      block: |
-        define host {
-          use {{ item }}-head-host
-          host_name {{ ansible_fqdn }}
-          address {{ inventory_hostname }}
-        }
-      marker: "# {mark} add master host {{ ansible_fqdn }}"
-    when: (gmond_cluster_head[0].split(':')[0] == ansible_ens192.ipv4.address) or
-          (gmond_cluster_head[0].split(':')[0] == ansible_host) or
-          (gmond_cluster_head[0].split(':')[0] == inventory_hostname) or
-          (gmond_cluster_head[0].split(':')[0] == ansible_hostname)
-    
-  - name: Create host definition
-    blockinfile:
-      path: /etc/nagios/conf.d/{{ item }}_hosts.cfg
-      block: |
-        define host {
-          use {{ item }}-host
+          use {{ cluster_item }}-host
           host_name {{ ansible_fqdn }}
           address {{ inventory_hostname }}
         }
       marker: "# {mark} add host {{ ansible_fqdn }}"
-    when: cluster_role != 'master'
+  
+  - name: Add heartbeat checking service to host
+    blockinfile:
+      path: /etc/nagios/conf.d/{{ cluster_item }}_hosts.cfg
+      block: |
+        define service {
+          use local-service
+          name {{ ansible_fqdn.split('.')[0] }}-check-ganglia-heartbeat
+          service_groups {{ cluster_item }}-ganglia-metrics
+          check_interval {{ nagios_check_ganglia_check_interval }}
+          notification_interval {{ nagios_check_ganglia_notification_interval }}
+          hostgroup_name {{ cluster_item }}
+          service_description check-ganglia-heartbeat
+          contact_groups admins,{{ cluster_item }}-contacts
+          notifications_enabled 1
+          check_command check_ganglia_heartbeat!{{ nagios_check_ganglia_heartbeat_threshold }}
+        }
+      marker: "# {mark} add service heartbeat for host {{ ansible_fqdn }}"
+  
+  - set_fact:
+      host_cluster_role: []
+      
+  - set_fact:
+      host_cluster_role: "{{ cluster_role.split(',') }}"
+    when: cluster_role is defined
+  
+  - name: Add checking service to host according to cluster-role and cluster-type
+    blockinfile:
+      path: /etc/nagios/conf.d/{{ cluster_item }}_hosts.cfg
+      block: |
+        define service {
+          use local-service
+          name {{ ansible_fqdn.split('.')[0] }}-check-ganglia-{{ metric.name }}
+          service_groups {{ cluster_item }}-ganglia-metrics
+          check_interval {{ nagios_check_ganglia_check_interval }}
+          notification_interval {{ nagios_check_ganglia_notification_interval }}
+          host_name {{ ansible_fqdn }}
+          service_description check-ganglia-{{ metric.name }}
+          contact_groups admins,{{ cluster_item }}-contacts
+          notifications_enabled {{ metric.notify | default(1) }}
+          check_command check_ganglia_metric!{{ metric.name }},{{ metric.oper }},{{ metric.warn_val }},{{ metric.oper }},{{ metric.crit_val }}
+        }
+      marker: "# {mark} add service {{ metric.name }} for host {{ ansible_fqdn }}"
+    with_items: "{{ nagios_check_ganglia_metrics }}"
+    loop_control:
+      loop_var: metric
+    when: (host_cluster_role | intersect(metric.cluster_role | default([])) | length() > 0 or
+           metric.cluster_role | default([]) == []) and
+          (metric.cluster_type | default([]) == [] or cluster_type in metric.cluster_type | default([]))
+    
+  - name: Add checking service if the current host is a cluster head
+    blockinfile:
+      path: /etc/nagios/conf.d/{{ cluster_item }}_hosts.cfg
+      block: |
+        define service {
+          use local-service
+          name {{ ansible_fqdn.split('.')[0] }}-check-ganglia-{{ metric.name }}
+          service_groups {{ cluster_item }}-ganglia-metrics
+          check_interval {{ nagios_check_ganglia_check_interval }}
+          notification_interval {{ nagios_check_ganglia_notification_interval }}
+          host_name {{ ansible_fqdn }}
+          service_description check-ganglia-{{ metric.name }}
+          contact_groups admins,{{ cluster_item }}-contacts
+          notifications_enabled {{ metric.notify | default(1) }}
+          check_command check_ganglia_metric!{{ metric.name }},{{ metric.oper }},{{ metric.warn_val }},{{ metric.oper }},{{ metric.crit_val }}
+        }
+      marker: "# {mark} add service {{ metric.name }} for host {{ ansible_fqdn }}"
+    with_items: "{{ nagios_check_ganglia_head_metrics }}"
+    loop_control:
+      loop_var: metric
+    when: (metric.cluster_type | default([]) == [] or cluster_type in metric.cluster_type | default([])) and
+          ((gmond_cluster_head[0].split(':')[0] == ansible_ens192.ipv4.address) or
+          (gmond_cluster_head[0].split(':')[0] == ansible_host) or
+          (gmond_cluster_head[0].split(':')[0] == inventory_hostname) or
+          (gmond_cluster_head[0].split(':')[0] == ansible_hostname))
 
   when: outer_ansible_distribution == 'CentOS' or outer_ansible_distribution == 'RedHat'
 

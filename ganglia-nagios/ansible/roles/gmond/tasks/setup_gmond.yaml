@@ -36,11 +36,11 @@
   
 - name: Add customized gmond python modules
   include_tasks: add_python_modules.yaml
-  with_items: "{{ gmond_python_modules }}"
+  with_items: "{{ gmond_python_modules | default([]) }}"
 
 - name: Add attachments for customized gmond python modules
   include_tasks: add_python_modules_attach.yaml
-  with_items: "{{ gmond_python_modules_attachs }}"
+  with_items: "{{ gmond_python_modules_attachs | default([]) }}"
   
 - block:
   - name: Add customized gmond python modules for cluster head

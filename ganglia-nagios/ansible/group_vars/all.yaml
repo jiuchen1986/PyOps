@@ -4,10 +4,13 @@ ansible_not_get_facts: no
 
 # a variable to list all clusters to be monitored, the name of cluster must be identical to the corresponding ansible host group name
 cluster_list:
-- goes
+#- goes
 - earth
-- calipso
-- suzaku
+#- calipso
+#- ladee
+#- adpci06
+#- adpci07
+#- timed
 
 # a variable indicate the type of the cluster which could be overwrited in the group's vars
 cluster_type: kubespray
@@ -23,10 +26,12 @@ gmond_python_modules:
 gmond_python_modules_attachs: []
 
 # gmond python modules that only deployed on the host running as the head of the cluster
-gmond_head_python_modules: []
+gmond_head_python_modules:
+- my_stats
 
 # list of names of other files required by the customized modules for the head
-gmond_head_python_modules_attachs: []
+gmond_head_python_modules_attachs:
+- MetricBook.py
 
 # list services managed by systemd on the monitored hosts which are checked, could be overwrited in the group's vars
 gmond_systemd_check_services:
@@ -61,7 +66,6 @@ gmond_cleanup_threshold: 300
 # the value of 'send_metadata_interval' in /etc/ganglia/gmond.conf on the monitored hosts running gmond
 gmond_send_metadata_interval: 30
 
-
 # the port gmond listening on with udp
 gmond_udp_recv_port: 8649
 
@@ -73,3 +77,83 @@ gmond_udp_recv_buffer: 10485760
 
 # the interval that the gmond sending data
 gmond_udp_send_ttl: 1
+
+
+
+
+
+# interval checking ganglia metric by nagios, unit is 60s, can be less than 1
+nagios_check_ganglia_check_interval: 3
+
+# interval sending notification by nagios, unit is 60s, can be less than 1
+nagios_check_ganglia_notification_interval: 120
+
+# maximal time losing heartbeat before off a host
+nagios_check_ganglia_heartbeat_threshold: 60
+
+
+# ganglia metrics checked by nagios with warning and critical values
+nagios_check_ganglia_metrics:
+- name: load_one
+  oper: more
+  warn_val: 5
+  crit_val: 7
+- name: cpu_idle
+  oper: less
+  warn_val: 50
+  crit_val: 10
+- name: cpu_wio
+  oper: more
+  warn_val: 50
+  crit_val: 90
+- name: disk_free_percent_rootfs
+  oper: less
+  warn_val: 40
+  crit_val: 10
+- name: mem_used_percent
+  oper: more
+  warn_val: 80
+  crit_val: 90
+- name: service-status-kubelet
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - worker
+  - master
+  cluster_type:
+  - kubespray
+  - erikube
+- name: service-status-docker
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - worker
+  - master
+- name: service-status-etcd
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - master
+  cluster_type:
+  - kubespray
+- name: service-status-etcd_container
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - master
+  cluster_type:
+  - erikube
+ 
+# services checked targeting only on the host running as the head of the cluster
+nagios_check_ganglia_head_metrics:
+- name: node_ready
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_type:
+  - kubespray
+  - erikube

@@ -1,0 +1,21 @@
+# host groups, host template for hosts in a group, and related service group definition
+
+# group for all hosts in the cluster
+define hostgroup {
+  hostgroup_name {{ cluster_item }}
+  alias {{ cluster_item }} cluster all
+}
+
+define servicegroup {
+  servicegroup_name {{ cluster_item }}-ganglia-metrics
+  alias {{ cluster_item }} ganglia metrics
+}
+
+define host {
+  name {{ cluster_item }}-host
+  use linux-server
+  hostgroups {{ cluster_item }}
+  contact_groups admins,{{ cluster_item }}-contacts
+  register 0
+}
+

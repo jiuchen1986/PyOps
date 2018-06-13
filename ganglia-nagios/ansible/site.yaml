@@ -68,6 +68,12 @@
     when: act == 'install' or act == 'cluster_install'
   roles:
   - { role: gmond, tags: ['gmond'] }
+
+- hosts: clusters
+  gather_facts: yes
+  become: yes
+  serial: 1
+  roles:
   - { role: ganglia-nagios-client, tags: ['ganglia_nagios'] }
   
 - hosts: ganglia-nagios-server
