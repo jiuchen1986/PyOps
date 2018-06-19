@@ -27,46 +27,12 @@
       state: latest
   
   when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'      
-    
+
 - name: Configure for system requirement
-  include_tasks: config_system.yaml  
+  include_tasks: config_system.yaml
+  
+- name: Add customized gmond python modules and related files
+  include_tasks: add_modules_and_files.yaml
 
-- name: Configure gmond
-  include_tasks: init_config_gmond.yaml
-  
-- name: Add customized gmond python modules
-  include_tasks: add_python_modules.yaml
-  with_items: "{{ gmond_python_modules | default([]) }}"
-
-- name: Add attachments for customized gmond python modules
-  include_tasks: add_python_modules_attach.yaml
-  with_items: "{{ gmond_python_modules_attachs | default([]) }}"
-  
-- block:
-  - name: Add customized gmond python modules for cluster head
-    include_tasks: add_python_modules.yaml
-    with_items: "{{ gmond_head_python_modules | default([]) }}"
-  
-  - name: Add attachments for customized gmond python modules for cluster head
-    include_tasks: add_python_modules_attach.yaml
-    with_items: "{{ gmond_head_python_modules_attachs | default([]) }}"
-  
-  when: (gmond_cluster_head[0].split(':')[0] == ansible_ens192.ipv4.address) or
-        (gmond_cluster_head[0].split(':')[0] == ansible_host) or
-        (gmond_cluster_head[0].split(':')[0] == inventory_hostname) or
-        (gmond_cluster_head[0].split(':')[0] == ansible_hostname)
-
-- name: Enable and start gmond with systemd
-  systemd:
-    name: gmond
-    state: started
-    enabled: yes
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
-  
-- name: Enable and start gmond with systemd
-  systemd:
-    name: ganglia-monitor
-    state: restarted
-    enabled: yes      
-  when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-
+- name: Start gmond service
+  include_tasks: start_gmond_service.yaml

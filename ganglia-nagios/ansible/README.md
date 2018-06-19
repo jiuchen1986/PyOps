@@ -61,9 +61,9 @@ In order to overwrite the variables' values in `group_vars/all.yaml`, variables 
 - **gmond\_cluster\_head**: the list of endpoints pointing to the heads of the cluster to which the ganglia-gmetad on the monitoring server will connect collecting monitoring data. The endpoints are composed as ip address plus port. **The heads MUST be also master nodes in the cluster**
 - **gmond\_multicast\_port**: the port each ganglia-gmond on the monitored host is listening on. Must be identical to the one used in the **gmond\_cluster\_head**
 - **gmond\_systemd\_check\_services**: the list of systemd managing services whose status need to be collected by the ganglia gmond on the monitoring hosts
-- **cluster\_type**: the type of the cluster which can be used to distinguish application of different monitoring metrics. Current supports `kubespray`, `erikube` and `devenv`
+- **cluster\_type**: the type of the cluster which can be used to distinguish application of different monitoring metrics. 
 
-Here gives an example of how to input the required variables using `-e` when calling the playbook to operate on a single erikube cluster:
+Here gives an example of how to input the required variables using `-e` when calling the playbook to operate on a single cluster of type `erikube` in which hosts will be checked with the status of systemd services named `kubelet`, `docker` and `etcd_container`:
 
     ansible-playbook -i path_to_your_erikube-like_inventory_file \
         -e "single_cluster=erikube_cluster_name" \
@@ -75,7 +75,7 @@ Here gives an example of how to input the required variables using `-e` when cal
         -e "act=cluster_install" \
         site.yaml
 
-And an example to operate on a single devenv cluster is given as:
+And an example to operate on a single cluster of type `devenv` in which hosts will be checked with the status of systemd services named `docker`, is given as:
 
     ansible-playbook -i ubuntu_hosts \
         -e "single_cluster=devenv_cluster_name" \
@@ -87,7 +87,7 @@ And an example to operate on a single devenv cluster is given as:
         -e "act=cluster_install" \
         site.yaml
 
-Then the example for a single kubespray cluster:
+Then the example for a single cluster of type `kubespray` using default systemd services checking configurations in `group_vars/all.yaml`:
 
     ansible-playbook -i ubuntu_hosts \
         -e "single_cluster=kubespray_cluster_name" \
@@ -98,14 +98,18 @@ Then the example for a single kubespray cluster:
         -e "act=cluster_install" \
         site.yaml
 
-**Notice** the differences on the input variables of `gmond_systemd_check_services` and `cluster_type` between above examples for different cluster types.
+**Notice:**
 
-The meaning of `-e "act=cluster_install"` will be described later.
+- Notice the differences on the input variables of `gmond_systemd_check_services` and `cluster_type` between above examples for different cluster types.
+- Actually all the variables defined in `group_vars/all.yaml` and `group_vars/ganglia-nagios-server.yaml` could be overwritten by setting via `-e` flags in the command line.
+- The meaning of `-e "act=cluster_install"` will be described later.
 
 ### Setup monitoring for the cluster
 Completing the above steps, monitoring for the single cluster can be setup by executing:
 
     ansible-playbook -i path_to_your_inventory_file -e "act=cluster_install" -e .... site.yaml
+
+where `-e ....` is short for all the variables specified for the cluster operation.
 
 ### Update monitoring configuration for the cluster
 Updating configurations for a single cluster also is supported, running:
@@ -203,6 +207,8 @@ And for a `devenv` cluster:
     
     cluster_type: devenv
 
+**Note** that all the variables defined in `group_vars/all.yaml` could be overwritten by redefining their values in the cluster-specific variable file.
+
 ### Installation on multiple clusters and the monitoring server
 Completing the above steps, monitoring for multiple clusters and the monitoring server can be setup by executing:
 
@@ -258,7 +264,11 @@ To do this, simply append a complex element to a list variable named `nagios_che
       oper: more
       warn_val: 5
       crit_val: 7
-      cluster_role: master
+      notify: yes
+      cluster_notify: no
+      cluster_role: 
+      - master
+      - etcd
       cluster_type:
       - kubespray
       - erikube
@@ -269,7 +279,9 @@ The meanings of members in the element are:
 - **oper**: Operator for the service to decide triggering alerts on the metric. Current implementations support `more` and `less`.
 - **warn_val**: Threshold value for triggering warning alerts on the metric. For `oper` equals `more`/`less`, a warning alert will be triggered if the value of the metric is larger/less than the value of `warn_val`. 
 - **crit_val**: Threshold value for triggering critical alerts on the metric. For `oper` equals `more`/`less`, a critical alert will be triggered if the value of the metric is larger/less than the value of `warn_val`. 
-- **cluster_role**: If this is set, the metric will only be checked on the hosts with the right cluster role, otherwise, the metric will be checked on all the hosts. Only `master` is meaningful for current implementations.
+- **notify**: Used to disable/enable the notification of alerts raised by the checking service. It can be omitted with a default value of `yes`.
+- **cluster_notify**: Used to disable/enable the notification of alerts to the cluster-specific contacts raised by the checking service. When `cluster_notify` is `no` and `notify` is `yes`, notifications will only be sent to the admin contacts.
+- **cluster_role**: If this is set, the metric will only be checked on the hosts with at least one of the cluster roles contained in this list, otherwise, the metric will be checked on all the hosts.
 - **cluster_type**: If this is set, the metric will only be checked on the clusters with a cluster type contained in this list variable, otherwise, the metric will be checked on all types of cluster.
 
 To cancel a checking on a metric, just remove the related element from the `nagios_check_ganglia_metrics` variable.
@@ -291,14 +303,90 @@ These work for both the single cluster and the multiple clusters cases with prop
 ## Cluster Scale-In
 When a cluster needs a scale-in, i.e. remove nodes from the cluster, do the following steps:
 
-- Prepare an inventory file containing the remain hosts
+- Prepare an inventory file containing the remaining hosts
 - Run the playbook with `act=cluster_delete` and the prepared inventory file
 - Run the playbook with `act=cluster_update` and the prepared inventory file
 
 After executions, monitoring for the removed hosts will be absent, while configurations on the remain hosts will be updated according to the values of configurable variables of the playbook.
 
-Make sure the **variable `gmond_cluster_head` is correctly pointed to one of the remain hosts when run the playbook with `act=cluster_update`**.
+Make sure the **variable `gmond_cluster_head` is correctly pointed to one of the remaining hosts when run the playbook with `act=cluster_update`**.
 
 These work for both the single cluster and the multiple clusters cases with proper inventory files.
 
 **Note that** the removed nodes maybe treated as being offline in Ganglia, while in Nagios just being removed without alerts.
+
+
+## Managing Nagios Contacts
+This project also provides simple mechanisms managing nagios contacts, including add/delete/update contacts, add/delete/update contacts in admin group, and add/delete/update contacts in cluster-specific group.
+
+### Update all nagios contacts
+Follow the below steps to update the whole settings for nagios contacts.
+
+- Set all the contacts' information by modifying the list variable `nagios_contacts` in `group_vars/ganglia-nagios-server.yaml`.
+- Run the playbook with `-e "act=update"` and `-t "nagios_core"`, with the inventory file indicating to the host of `ganglia-nagios-server` group.
+
+**Cautions:** Besides the contacts, other configurations for the nagios core may be updated.
+
+
+### Add nagios contacts
+Follow the below steps to add multiple nagios contacts.
+
+- Add the information of the contacts to be added to the list variable `nagios_contacts` in `group_vars/ganglia-nagios-server.yaml`.
+- Run the playbook with `-e "act=contacts_add"` and `-t "nagios_core"`, with the inventory file indicating to the host of `ganglia-nagios-server` group.
+
+
+### Delete nagios contacts
+Follow the below steps to delete multiple nagios contacts.
+
+- Add the information of the contacts to be deleted to the list variable `nagios_contacts` in `group_vars/ganglia-nagios-server.yaml`.
+- Run the playbook with `-e "act=contacts_delete"` and `-t "nagios_core"`, with the inventory file indicating to the host of `ganglia-nagios-server` group.
+
+
+### Update all contacts in admin group
+Follow the below steps to update the whole settings for nagios contacts in the admin group.
+
+- Make sure the target contacts have been added via either updating all contacts or adding contacts as described above.
+- Set all the contacts' information by modifying the list variable `nagios_admin_contacts` in `group_vars/ganglia-nagios-server.yaml`.
+- Run the playbook with `-e "act=update"` and `-t "nagios_core"`, with the inventory file indicating to the host of `ganglia-nagios-server` group.
+
+**Cautions:** Besides the contacts in the admin group, other configurations for the nagios core may be updated.
+
+
+### Add nagios contacts in admin group
+Follow the below steps to add multiple nagios contacts into the admin group.
+
+- Make sure the target contacts have been added via either updating all contacts or adding contacts as described above.
+- Add the names of the contacts to be added to the list variable `nagios_admin_contacts` in `group_vars/ganglia-nagios-server.yaml`.
+- Run the playbook with `-e "act=admin_group_add"` and `-t "nagios_core"`, with the inventory file indicating to the host of `ganglia-nagios-server` group.
+
+
+### Delete nagios contacts in admin group
+Follow the below steps to delete multiple nagios contacts from the admin group.
+
+- Add the information of the contacts to be deleted to the list variable `nagios_admin_contacts` in `group_vars/ganglia-nagios-server.yaml`.
+- Run the playbook with `-e "act=admin_group_delete"` and `-t "nagios_core"`, with the inventory file indicating to the host of `ganglia-nagios-server` group.
+
+
+### Update all contacts in cluster-specific group
+Follow the below steps to update the nagios contacts in the cluster-specific group(s).
+
+- Make sure the target contacts have been added via either updating all contacts or adding contacts as described above.
+- Set the contacts' information by defining a list variable `cluster_contacts` in the cluster-specific variable file, e.g. `group_vars/goes.yaml`, or via `-e {'cluster_contacts': ['xxx']}` at command line for the single cluster operation.
+- Run the playbook with `-e "act=cluster_update"` and `-t "ganglia_nagios_server"`, with the inventory files indicating to the hosts of `ganglia-nagios-server` group **along with all the related clusters' groups**.
+
+**Cautions:** Besides the cluster-specific contacts, other cluster-specific configurations at the nagios server may be updated.
+
+
+### Add nagios contacts in cluster-specific group
+Follow the below steps to add multiple nagios contacts in the cluster-specific group(s).
+
+- Make sure the target contacts have been added via either updating all contacts or adding contacts as described above.
+- Add the names of the contacts to be added to the list variable `cluster_contacts` in the cluster-specific variable file, e.g. `group_vars/goes.yaml`, or via `-e {'cluster_contacts': ['xxx']}` at command line for the single cluster operation.
+- Run the playbook with `-e "act=cluster_contacts_add"` and and `-t "ganglia_nagios_server"`, with the inventory files indicating to the hosts of `ganglia-nagios-server` group **along with the related clusters' groups**.
+
+
+### Delete nagios contacts in cluster-specific group
+Follow the below steps to delete multiple nagios contacts from the cluster-specific group(s).
+
+- Add the information of the contacts to be deleted to the list variable `cluster_contacts` in the cluster-specific variable file, e.g. `group_vars/goes.yaml`, or via `-e {'cluster_contacts': ['xxx']}` at command line for the single cluster operation.
+- Run the playbook with `-e "act=cluster_contacts_delete"` and and `-t "ganglia_nagios_server"`, with the inventory files indicating to the hosts of `ganglia-nagios-server` group **along with the related clusters' groups**. 

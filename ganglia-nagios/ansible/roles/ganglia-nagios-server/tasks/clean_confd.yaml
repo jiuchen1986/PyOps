@@ -8,10 +8,7 @@
       chdir: /etc/nagios
   
   - name: Save the hosts definitions to the created temp dir
-    copy:
-      src: /etc/nagios/conf.d/{{ cluster_item }}_hosts.cfg
-      dest: /etc/nagios/hosts_temp/{{ cluster_item }}_hosts.cfg
-      remote_src: yes
+    shell: mv /etc/nagios/conf.d/{{ cluster_item }}_host_* /etc/nagios/hosts_temp/
     with_items: "{{ cluster_list }}"
     loop_control:
       loop_var: cluster_item
@@ -22,13 +19,7 @@
       chdir: /etc/nagios/conf.d/
 
   - name: Restore the hosts definitions to the conf.d
-    copy:
-      src: /etc/nagios/hosts_temp/{{ cluster_item }}_hosts.cfg
-      dest: /etc/nagios/conf.d/{{ cluster_item }}_hosts.cfg
-      remote_src: yes
-    with_items: "{{ cluster_list }}"
-    loop_control:
-      loop_var: cluster_item
+    shell: mv /etc/nagios/hosts_temp/* /etc/nagios/conf.d/
       
   - name: Remove the temp dir
     shell: rm -rf hosts_temp/

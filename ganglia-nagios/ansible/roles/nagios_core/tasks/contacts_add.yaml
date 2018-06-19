@@ -12,6 +12,8 @@
           alias                          {{ item.alias | default(item.contact_name) }}		
           service_notification_options   {{ item.service_notification_options | default('u,c,r') }}
           host_notification_options      {{ item.host_notification_options | default('d,u,r') }}
+          service_notification_commands  custom-notify-service-by-email
+          host_notification_commands     custom-notify-host-by-email
           email                          {{ item.email }}
         }
       marker: "# {mark} add contact {{ item.contact_name }}"

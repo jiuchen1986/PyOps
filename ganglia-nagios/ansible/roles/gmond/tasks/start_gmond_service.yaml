@@ -1,11 +1,11 @@
-# tasks to initialize config of gmond on the monitored hosts
+# tasks to start gmond services on the monitored hosts
 
 - name: Get gmond cluster name which is identical to the cluster's name
   set_fact:
     gmond_cluster_name: "{{ item }}"
   with_items: "{{ cluster_list }}"
   when: item in group_names
-
+  
 - block:
   
   - name: Copy config file with multicast mode
@@ -13,6 +13,12 @@
       src: gmond_multicast.conf.j2
       dest: /etc/ganglia/gmond.conf
     when: gmond_mode == 'multicast'
+    
+  - name: Enable and start gmond with systemd
+    systemd:
+      name: gmond
+      state: started
+      enabled: yes
   
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
   
@@ -23,6 +29,12 @@
       src: gmond_multicast_ubuntu.conf.j2
       dest: /etc/ganglia/gmond.conf
     when: gmond_mode == 'multicast'
+    
+  - name: Enable and start gmond with systemd
+    systemd:
+      name: ganglia-monitor
+      state: started
+      enabled: yes
   
   when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 

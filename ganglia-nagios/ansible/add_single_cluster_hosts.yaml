@@ -31,7 +31,31 @@
     
 - block:
   
-  - name: Add etcd hosts from ansible host
+  - name: Add master-etcd hosts from ansible host
+    add_host:
+      name: "{{ hostvars[item]['ansible_host'] }}"
+      ansible_host: "{{ hostvars[item]['ansible_host'] }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: master,etcd
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['etcd'] }}"
+    when: item in groups['master'] and "'ansible_host' in hostvars[item]"
+    
+  - name: Add master-etcd hosts only from inventory name
+    add_host:
+      name: "{{ item }}"
+      ansible_host: "{{ item }}"
+      cluster_list:
+      - "{{ single_cluster }}"
+      gmond_cluster_name: "{{ single_cluster }}"
+      cluster_role: master,etcd
+      groups: "{{ single_cluster }}"
+    with_items: "{{ groups['etcd'] }}"
+    when: item in groups['master'] and "'ansible_host' not in hostvars[item]"
+  
+  - name: Add etcd only hosts from ansible host
     add_host:
       name: "{{ hostvars[item]['ansible_host'] }}"
       ansible_host: "{{ hostvars[item]['ansible_host'] }}"
@@ -43,7 +67,7 @@
     with_items: "{{ groups['etcd'] }}"
     when: item not in groups['master'] and "'ansible_host' in hostvars[item]"
     
-  - name: Add etcd hosts from inventory name
+  - name: Add etcd hosts only from inventory name
     add_host:
       name: "{{ item }}"
       ansible_host: "{{ item }}"

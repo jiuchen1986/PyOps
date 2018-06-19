@@ -1,0 +1,50 @@
+# tasks to setup contacts
+
+- block:
+      
+  - name: Add default admin user to contacts file
+    blockinfile:
+      path: /etc/nagios/objects/contacts.cfg
+      block: |
+        define contact {
+          contact_name                   {{ nagios_admin_username }}
+          use                            generic-contact		
+          alias                          Nagios Default Admin		
+          service_notification_options   w,u,c,r,f,s
+          host_notification_options      d,u,r,f,s
+          service_notification_commands  custom-notify-service-by-email
+          host_notification_commands     custom-notify-host-by-email
+          email                          {{ nagios_admin_email }}
+        }
+      marker: "# {mark} add default admin"
+      
+  - name: Add default admin group to contacts file
+    blockinfile:
+      path: /etc/nagios/objects/contacts.cfg
+      block: |
+        define contactgroup {
+          contactgroup_name       admins
+          alias                   Nagios Default Admin Group
+          members                 {{ nagios_admin_username }},{{ nagios_admin_contacts | join(',') }}
+        }
+      marker: "# {mark} create default admin group"
+  
+  - name: Add each contact to contacts file
+    blockinfile:
+      path: /etc/nagios/objects/contacts.cfg
+      block: |
+        define contact{
+          contact_name                   {{ item.contact_name }}	
+          use                            generic-contact		
+          alias                          {{ item.alias | default(item.contact_name) }}		
+          service_notification_options   {{ item.service_notification_options | default('u,c,r') }}
+          host_notification_options      {{ item.host_notification_options | default('d,u,r') }}
+          service_notification_commands  custom-notify-service-by-email
+          host_notification_commands     custom-notify-host-by-email
+          email                          {{ item.email }}
+        }
+      marker: "# {mark} add contact {{ item.contact_name }}"
+    with_items: "{{ nagios_contacts }}"
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

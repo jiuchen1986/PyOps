@@ -45,17 +45,6 @@
   - { role: gmond_localhost, tags: ['gmond'] }
   - { role: ganglia_web, tags: ['ganglia_web'] }
   - { role: nagios_core, tags: ['nagios_core'] }
-  post_tasks:
-  - name: Create blank file to hold host definitions for each cluster
-    include_role:
-      name: ganglia-nagios-server
-      tasks_from: create_blank_host_definitions.yaml
-    tags:
-    - ganglia_nagios
-    when: act != 'uninstall' and
-          act != 'cluster_uninstall' and
-          act != 'cluster_contacts_add' and
-          act != 'cluster_contacts_delete'
   
 - hosts: clusters
   gather_facts: yes
@@ -68,15 +57,9 @@
     when: act == 'install' or act == 'cluster_install'
   roles:
   - { role: gmond, tags: ['gmond'] }
-
-- hosts: clusters
-  gather_facts: yes
-  become: yes
-  serial: 1
-  roles:
-  - { role: ganglia-nagios-client, tags: ['ganglia_nagios'] }
+  - { role: ganglia-nagios-client, tags: ['ganglia_nagios_client'] }
   
 - hosts: ganglia-nagios-server
   become: yes
   roles:
-  - { role: ganglia-nagios-server, tags: ['ganglia_nagios'] }
+  - { role: ganglia-nagios-server, tags: ['ganglia_nagios_server'] }

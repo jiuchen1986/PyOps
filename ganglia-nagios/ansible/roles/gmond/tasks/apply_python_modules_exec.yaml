@@ -1,0 +1,7 @@
+# tasks to execute commands for customized gmond python modules, such as setup environment
+
+- name: Apply executions
+  become_user: root
+  become: yes
+  shell: "{{ item }}"
+

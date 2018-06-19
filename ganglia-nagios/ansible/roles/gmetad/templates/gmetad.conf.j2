@@ -131,7 +131,7 @@ setuid_username ganglia
 #-------------------------------------------------------------------------------
 # Where gmetad stores its round-robin databases
 # default: "/var/lib/ganglia/rrds"
-# rrd_rootdir "/some/other/place"
+rrd_rootdir "{{ gmetad_rrds_path }}"
 #
 #-------------------------------------------------------------------------------
 # List of metric prefixes this gmetad will not summarize at cluster or grid level.

@@ -15,6 +15,11 @@ define host {
   name {{ cluster_item }}-host
   use linux-server
   hostgroups {{ cluster_item }}
+  check_interval {{ nagios_host_check_interval }}
+  retry_interval {{ nagios_host_check_retry_interval }}
+  max_check_attempts {{ nagios_host_check_max_retries }}
+  check_command check_host_alive_by_ganglia
+  notification_interval {{ nagios_host_notification_interval }}
   contact_groups admins,{{ cluster_item }}-contacts
   register 0
 }

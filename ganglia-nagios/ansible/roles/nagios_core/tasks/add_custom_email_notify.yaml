@@ -1,0 +1,21 @@
+# tasks to add commands for customized email notification
+
+- block:
+      
+  - name: Add custom email notification commands
+    blockinfile:
+      path: /etc/nagios/objects/commands.cfg
+      block: |
+        define command{
+          command_name    custom-notify-host-by-email
+          command_line    /usr/bin/printf "%b" "***** Nagios *****\n\nNotification Type: $NOTIFICATIONTYPE$\n\nCluster: $HOSTGROUPNAME$\n\nHost: $HOSTNAME$\nState: $HOSTSTATE$\nAddress: $HOSTADDRESS$\nInfo: $HOSTOUTPUT$\n\nDate/Time: $LONGDATETIME$\n" | /usr/bin/mail -s "** $NOTIFICATIONTYPE$ Host Alert: $HOSTNAME$ is $HOSTSTATE$ **" $CONTACTEMAIL$
+        }
+        
+        define command{
+          command_name    custom-notify-service-by-email
+          command_line    /usr/bin/printf "%b" "***** Nagios *****\n\nNotification Type: $NOTIFICATIONTYPE$\n\nCluster: $HOSTGROUPNAME$\n\nService: $SERVICEDESC$\nHost: $HOSTNAME$\nAddress: $HOSTADDRESS$\nState: $SERVICESTATE$\n\nDate/Time: $LONGDATETIME$\n\nAdditional Info:\n\n$SERVICEOUTPUT$\n" | /usr/bin/mail -s "** $NOTIFICATIONTYPE$ Service Alert: $HOSTALIAS$/$SERVICEDESC$ is $SERVICESTATE$ **" $CONTACTEMAIL$
+        }
+      marker: "# {mark} add custom email notification commands"
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

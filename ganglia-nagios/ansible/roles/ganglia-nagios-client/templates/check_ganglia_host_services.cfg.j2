@@ -1,0 +1,72 @@
+# definitions for a single host and related services 
+
+# host definition
+define host {
+  use {{ cluster_item }}-host
+  host_name {{ ansible_fqdn }}
+  address {{ inventory_hostname }}
+}
+
+# definitions for services
+{% if cluster_role is defined %}
+{% set host_cluster_role = cluster_role.split(',') %}
+{% endif %}
+
+{% for metric in nagios_check_ganglia_metrics %}
+{% if (host_cluster_role | default([]) | intersect(metric.cluster_role | default([])) | length() > 0 or
+       metric.cluster_role | default([]) == []) and
+      (metric.cluster_type | default([]) == [] or cluster_type in metric.cluster_type | default([])) %}
+define service {
+  use local-service
+  name {{ ansible_fqdn.split('.')[0] }}-check-ganglia-{{ metric.name }}
+  service_groups {{ cluster_item }}-ganglia-metrics
+  check_interval {{ nagios_check_ganglia_check_interval }}
+  retry_interval {{ nagios_check_ganglia_check_retry_interval }}
+  max_check_attempts {{ nagios_check_ganglia_check_max_retries }}
+  notification_interval {{ nagios_check_ganglia_notification_interval }}
+  host_name {{ ansible_fqdn }}
+  service_description check-ganglia-{{ metric.name }}
+{% if metric.cluster_notify | default('yes' | bool) %}
+  contact_groups admins,{{ cluster_item }}-contacts
+{% else %}
+  contact_groups admins
+{% endif %}
+{% if not metric.notify | default('yes' | bool) %}
+  notifications_enabled 0
+{% endif %}
+  check_command check_ganglia_metric!{{ metric.name }},{{ metric.oper }},{{ metric.warn_val }},{{ metric.oper }},{{ metric.crit_val }}
+}
+
+{% endif %}
+{% endfor %}
+
+{% for metric in nagios_check_ganglia_head_metrics %}
+{% if (metric.cluster_type | default([]) == [] or cluster_type in metric.cluster_type | default([])) and
+      ((gmond_cluster_head[0].split(':')[0] == ansible_ens192.ipv4.address) or
+       (gmond_cluster_head[0].split(':')[0] == ansible_host) or
+       (gmond_cluster_head[0].split(':')[0] == inventory_hostname) or
+       (gmond_cluster_head[0].split(':')[0] == ansible_hostname)) %}
+define service {
+  use local-service
+  name {{ ansible_fqdn.split('.')[0] }}-check-ganglia-{{ metric.name }}
+  service_groups {{ cluster_item }}-ganglia-metrics
+  check_interval {{ nagios_check_ganglia_check_interval }}
+  retry_interval {{ nagios_check_ganglia_check_retry_interval }}
+  max_check_attempts {{ nagios_check_ganglia_check_max_retries }}
+  notification_interval {{ nagios_check_ganglia_notification_interval }}
+  host_name {{ ansible_fqdn }}
+  service_description check-ganglia-{{ metric.name }}
+{% if metric.cluster_notify | default('yes' | bool) %}
+  contact_groups admins,{{ cluster_item }}-contacts
+{% else %}
+  contact_groups admins
+{% endif %}
+{% if not metric.notify | default('yes' | bool) %}
+  notifications_enabled 0
+{% endif %}
+  check_command check_ganglia_metric!{{ metric.name }},{{ metric.oper }},{{ metric.warn_val }},{{ metric.oper }},{{ metric.crit_val }}
+}
+
+{% endif %}
+{% endfor %}
+

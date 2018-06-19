@@ -25,6 +25,9 @@ gmond_python_modules:
 # list of names of other files required by the customized modules
 gmond_python_modules_attachs: []
 
+# list of commands needed to be applied required by the customized modules
+gmond_python_modules_exec: []
+
 # gmond python modules that only deployed on the host running as the head of the cluster
 gmond_head_python_modules:
 - my_stats
@@ -32,6 +35,10 @@ gmond_head_python_modules:
 # list of names of other files required by the customized modules for the head
 gmond_head_python_modules_attachs:
 - MetricBook.py
+
+# list of commands needed to be applied required by the customized modules for the head
+gmond_head_python_modules_exec:
+- chmod 0644 /etc/kubernetes/admin.conf
 
 # list services managed by systemd on the monitored hosts which are checked, could be overwrited in the group's vars
 gmond_systemd_check_services:
@@ -82,14 +89,35 @@ gmond_udp_send_ttl: 1
 
 
 
-# interval checking ganglia metric by nagios, unit is 60s, can be less than 1
-nagios_check_ganglia_check_interval: 3
+# interval checking ganglia metric by nagios, unit is 1 min, can be less than 1
+nagios_check_ganglia_check_interval: 2
+
+# retry interval checking ganglia metric by nagios, unit is 1 min, can be less than 1
+nagios_check_ganglia_check_retry_interval: 1
+
+# maximal check attempts for ganglia metric check retry by nagios
+nagios_check_ganglia_check_max_retries: 2
 
 # interval sending notification by nagios, unit is 60s, can be less than 1
-nagios_check_ganglia_notification_interval: 120
+nagios_check_ganglia_notification_interval: 60
 
-# maximal time losing heartbeat before off a host
+# maximal time losing heartbeat before off a host in sec
 nagios_check_ganglia_heartbeat_threshold: 60
+
+# path to the plugins used by nagios to check on ganglia
+nagios_check_ganglia_plugins_path: /usr/share/ganglia/nagios/
+
+# host check interval by nagios in min, can be less than 1
+nagios_host_check_interval: 3
+
+# host check retry interval by nagios in min, can be less than 1
+nagios_host_check_retry_interval: 1
+
+# maximal check attempts for host check retry by nagios
+nagios_host_check_max_retries: 3
+
+# host notification resend interval in min
+nagios_host_notification_interval: 60
 
 
 # ganglia metrics checked by nagios with warning and critical values
@@ -98,6 +126,8 @@ nagios_check_ganglia_metrics:
   oper: more
   warn_val: 5
   crit_val: 7
+  notify: yes
+  cluster_notify: no
 - name: cpu_idle
   oper: less
   warn_val: 50
@@ -147,7 +177,7 @@ nagios_check_ganglia_metrics:
   - master
   cluster_type:
   - erikube
- 
+
 # services checked targeting only on the host running as the head of the cluster
 nagios_check_ganglia_head_metrics:
 - name: node_ready

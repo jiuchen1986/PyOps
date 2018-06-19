@@ -2,6 +2,11 @@
 - include_tasks: "define_hostgroup_servicegroup.yaml"
 - include_tasks: "define_contact_group.yaml"
 
+- include_tasks: "combine_cluster_hosts.yaml"
+  with_items: "{{ cluster_list }}"
+  loop_control:
+    loop_var: cluster_item
+
 - name: Restart nagios with systemd
   systemd:
     name: nagios

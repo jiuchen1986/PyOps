@@ -3,8 +3,10 @@
 - block:
   
   - name: Delete contact from the contact group
-    include_tasks: del_cluster_contacts.yaml
-    with_items: "{{ hostvars[groups[cluster_item][0]]['cluster_contacts'] | default([]) }}"
+    include_tasks: del_cluster_contacts_relay.yaml
+    with_items: "{{ cluster_list }}"
+    loop_control:
+      loop_var: cluster_item
     
   - name: Restart nagios with systemd
     systemd:

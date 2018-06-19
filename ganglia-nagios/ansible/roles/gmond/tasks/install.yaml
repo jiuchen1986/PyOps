@@ -1,17 +1,5 @@
 # tasks to install ganglia gmonds on monitored host
 
 # for current implementation, the existence is checked by checking running process
-- name: Check gmond running process
-  shell: ps -ef | grep gmond | grep -v grep | grep -v ansible
-  ignore_errors: yes
-  register: result
-
-- name: Setup gmond
-  become: yes
-  include_tasks: setup_gmond.yaml
-  when: result.stdout == ""
-
-- name: Update gmond
-  become: yes
-  include_tasks: cluster_update.yaml
-  when: result.stdout != ""
+- name: Install gmonds
+  include_tasks: cluster_install.yaml

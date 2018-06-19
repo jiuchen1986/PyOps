@@ -1,0 +1,27 @@
+# tasks to combine the files of definitions for the hosts of a cluster into a single file
+
+- block:
+
+  - name: Create a temp dir to save hosts definitions for the cluster
+    file:
+      path: /etc/nagios/{{ cluster_item }}_hosts_temp
+      state: directory
+  
+  - name: Move files to the temp directory
+    shell: mv /etc/nagios/conf.d/{{ cluster_item }}_host_* /etc/nagios/{{ cluster_item }}_hosts_temp/
+    register: result
+    ignore_errors: yes
+    
+  - name: Combine files into a single file
+    assemble:
+      src: /etc/nagios/{{ cluster_item }}_hosts_temp/
+      dest: /etc/nagios/conf.d/{{ cluster_item }}_services_hosts.cfg
+    when: result is succeeded
+      
+  - name: Remove the temp dir
+    file:
+      path: /etc/nagios/{{ cluster_item }}_hosts_temp
+      state: absent
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

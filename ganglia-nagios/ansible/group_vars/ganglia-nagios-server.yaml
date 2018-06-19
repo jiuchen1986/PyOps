@@ -12,6 +12,9 @@ gmetad_clusters_poll_interval: 15
 # the grid name
 gmetad_grid_name: rnd_tenant
 
+# where gmetad stores its round-robin databases
+gmetad_rrds_path: /data/ganglia/rrds
+
 # username to login ganglia web
 ganglia_web_username: adminganglia
 
@@ -55,7 +58,4 @@ nagios_contacts:
 # names of the contacts in the admin group
 nagios_admin_contacts:
 - xxx
-
-# path to the plugins used by nagios to check on ganglia
-nagios_check_ganglia_plugins_path: /usr/share/ganglia/nagios/
     
