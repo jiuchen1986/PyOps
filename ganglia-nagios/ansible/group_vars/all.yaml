@@ -21,20 +21,22 @@ gmond_python_modules:
 - systemd_stats
 - mem_stats
 - netstats
+- docker_ps
 
 # list of names of other files required by the customized modules
-gmond_python_modules_attachs: []
+gmond_python_modules_attachs:
+- MetricBook.py
 
 # list of commands needed to be applied required by the customized modules
-gmond_python_modules_exec: []
+gmond_python_modules_exec:
+- usermod -a -G root ganglia
 
 # gmond python modules that only deployed on the host running as the head of the cluster
 gmond_head_python_modules:
-- my_stats
+- node_ready
 
 # list of names of other files required by the customized modules for the head
-gmond_head_python_modules_attachs:
-- MetricBook.py
+gmond_head_python_modules_attachs: []
 
 # list of commands needed to be applied required by the customized modules for the head
 gmond_head_python_modules_exec:
@@ -155,6 +157,13 @@ nagios_check_ganglia_metrics:
   - kubespray
   - erikube
 - name: service-status-docker
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - worker
+  - master
+- name: docker_ps
   oper: less
   warn_val: 1
   crit_val: 1.5

@@ -17,7 +17,7 @@ Those operations targeting on a single cluster support 3 different types of the 
 The actions taken for a single cluster are:
 
 
-- install ganglia-gmond on each host in the cluster with multicast mode
+- install ganglia-gmond on each host in the cluster with multicast mode, several preparations on the host maybe taken places on depends, e.g. add EPEL yum repo
 - indicate ganglia-gmetad on the monitoring server to the head host of the cluster
 - add host and service definitions to the nagios-core on the monitoring server related to the metrics of hosts in the cluster
 
@@ -62,6 +62,7 @@ In order to overwrite the variables' values in `group_vars/all.yaml`, variables 
 - **gmond\_multicast\_port**: the port each ganglia-gmond on the monitored host is listening on. Must be identical to the one used in the **gmond\_cluster\_head**
 - **gmond\_systemd\_check\_services**: the list of systemd managing services whose status need to be collected by the ganglia gmond on the monitoring hosts
 - **cluster\_type**: the type of the cluster which can be used to distinguish application of different monitoring metrics. 
+- **cluster\_contacts**: the list of contacts only receiving cluster-specific notifications. The contacts need to add to the nagios core previously. See the `Manage Nagios Contacts` section.
 
 Here gives an example of how to input the required variables using `-e` when calling the playbook to operate on a single cluster of type `erikube` in which hosts will be checked with the status of systemd services named `kubelet`, `docker` and `etcd_container`:
 
@@ -71,6 +72,7 @@ Here gives an example of how to input the required variables using `-e` when cal
         -e "{'gmond_systemd_check_services': ['kubelet', 'docker', 'etcd_container']}" \
         -e "{'gmond_cluster_head': ['xxx.xxx.xxx.xxx:8661']}" \
         -e "gmond_multicast_port=8661" \
+        -e "{'cluster_contacts': ['xxx']}"
         -e "cluster_type=erikube" \
         -e "act=cluster_install" \
         site.yaml
@@ -83,6 +85,7 @@ And an example to operate on a single cluster of type `devenv` in which hosts wi
         -e "{'gmond_systemd_check_services': ['docker']}" \
         -e "{'gmond_cluster_head': ['xxx.xxx.xxx.xxx:8662']}" \
         -e "gmond_multicast_port=8662" \
+        -e "{'cluster_contacts': ['xxx']}"
         -e "cluster_type=devenv" \
         -e "act=cluster_install" \
         site.yaml
@@ -94,6 +97,7 @@ Then the example for a single cluster of type `kubespray` using default systemd 
         -e "ganglia_nagios_server=xxx.xxx.xxx.xxx" \
         -e "{'gmond_cluster_head': ['xxx.xxx.xxx.xxx:8663']}" \
         -e "gmond_multicast_port=8663" \
+        -e "{'cluster_contacts': ['xxx']}"
         -e "cluster_type=kubespray" \
         -e "act=cluster_install" \
         site.yaml
@@ -135,7 +139,7 @@ The actions taken for multiple clusters are:
 
 
 - install ganglia-gmetad, rrdtool, ganglia-web, and nagios-core to the monitoring server. If monitoring server has been setup, the former actions will be automatically ignored
-- install ganglia-gmond on each host in the clusters with multicast mode
+- install ganglia-gmond on each host in the clusters with multicast mode, several preparations on the host maybe taken places on depends, e.g. add EPEL yum repo
 - indicate ganglia-gmetad on the monitoring server to the head hosts of each cluster
 - add host and service definitions to the nagios-core on the monitoring server related to the metrics of hosts in the clusters
 
@@ -288,6 +292,13 @@ To cancel a checking on a metric, just remove the related element from the `nagi
 
 After updating the `nagios_check_ganglia_metrics` variable, run the playbook with `act=cluster_install` or `act=cluster_update` if only to apply the updated checking service list on the target clusters, while leave the services unchanged on the non-target clusters, or with `act=update` to apply update on all existing clusters.
 
+## Add Cluster Scope Gmond Python modules and Nagios Service checks
+For monitoring against clusters, cluster-scope metrics imply status of the cluster as a whole are crucial. Sometimes such metrics are obtained via cluster provisioning APIs from a single host having access to the APIs, e.g. one master host. This brings several gmond python modules deployed on only one host per-cluster, along with nagios service checks against the deployed host.
+
+This project explicitly provides configurations to setup monitoring for the cluster-scope metrics through variables such as `gmond_head_python_modules` and `nagios_check_ganglia_head_metrics` in `group_vars/all.yaml`.
+
+Similar to the description in the former two sections, customized gmond python modules and nagios checking services can be included by adding relevant elements in those two list variables. However, the modules listed in `gmond_head_python_modules` will only be deployed on one of the host as the cluster head, which is assigned by `gmond_cluster_head`, while the services included in `nagios_check_ganglia_head_metrics` will be checked against that host.
+
 ## Cluster Scale-Out
 When a cluster needs a scale-out, i.e. add new nodes to the cluster, do the following steps:
 
@@ -316,7 +327,7 @@ These work for both the single cluster and the multiple clusters cases with prop
 **Note that** the removed nodes maybe treated as being offline in Ganglia, while in Nagios just being removed without alerts.
 
 
-## Managing Nagios Contacts
+## Manage Nagios Contacts
 This project also provides simple mechanisms managing nagios contacts, including add/delete/update contacts, add/delete/update contacts in admin group, and add/delete/update contacts in cluster-specific group.
 
 ### Update all nagios contacts

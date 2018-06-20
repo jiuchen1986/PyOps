@@ -1,0 +1,18 @@
+# node_ready.pyconf
+modules {
+  module {
+    name     = "node_ready"
+    language = "python"
+  }
+}
+
+collection_group {      
+  collect_every  = 10
+  time_threshold = 15
+
+  metric {
+    name = "node_ready"
+    title = "Node ready status"    
+  }
+ 
+}        

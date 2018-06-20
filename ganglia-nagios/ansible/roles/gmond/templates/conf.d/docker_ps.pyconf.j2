@@ -1,0 +1,18 @@
+# docker_ps.pyconf
+modules {
+  module {
+    name     = "docker_ps"
+    language = "python"
+  }
+}
+
+collection_group {      # run on k8s worker node
+  collect_every  = 10
+  time_threshold = 15
+
+  metric {
+    name = "docker_ps"
+    title = "Docker ps status"    
+  }
+ 
+}        

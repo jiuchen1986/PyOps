@@ -1,0 +1,46 @@
+# playbook for helping to delete python modules and related pyconf file form hosts
+# things need to do to use this playbook:
+## 1. put reachable names or ip addresses of pointing to the hosts in the variable 'targets'
+## 2. put the target names of python modules in the list variable 'gmond_modules'
+## 3. run this playbook without any inventory file
+
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    targets:
+    - xxx.xxx.xxx.xxx
+  tasks:
+  - name: Add targets
+    add_host:
+      name: "{{ item }}"
+      ###### variables for ssh connected such as ansible_user, ansible_become_pass may need to be added here in future
+      groups: targets
+    with_items: "{{ targets }}"
+  
+- hosts: targets
+  become: yes
+  vars:
+    gmond_modules:
+    - xxx
+    - xxx
+  tasks:
+  - name: Delete python file of the modules in centos/redhat os
+    file:
+      path: /usr/lib64/ganglia/python_modules/{{ item }}.py*
+      state: absent
+    with_items: "{{ gmond_modules }}"
+    when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  
+  - name: Delete python file of the modules in ubuntu/debian os
+    file:
+      path: /usr/lib/ganglia/python_modules/{{ item }}.py*
+      state: absent
+    with_items: "{{ gmond_modules }}"
+    when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  
+  - name: Delete pyconf file of the modules
+    file:
+      path: /etc/ganglia/conf.d/{{ item }}.pyconf
+      state: absent
+    with_items: "{{ gmond_modules }}"
