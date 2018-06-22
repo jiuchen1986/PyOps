@@ -29,7 +29,7 @@ class MetricBook(object):
         metric_value = 2    # '2' as defined by Chen Xin, indicating a success (node status is good)
 
         # check all nodes, see it as failed if any one node failed
-        cmd = 'for node in $(kubectl --kubeconfig=\'/etc/kubernetes/admin.conf\' get nodes|grep -v NAME|awk \'{print $1}\'|grep -v master);do kubectl describe node $node;done|egrep -q \"\s+Ready\s+[False|Unknown]\";echo $?'
+        cmd = 'for node in $(kubectl --kubeconfig=\'/etc/kubernetes/admin.conf\' get nodes|grep -v NAME|awk \'{print $1}\');do kubectl describe node $node;done|egrep -q \"\s+Ready\s+[False|Unknown]\";echo $?'
         if commands.getoutput(cmd) == '0':
             metric_value = 0
         return metric_value

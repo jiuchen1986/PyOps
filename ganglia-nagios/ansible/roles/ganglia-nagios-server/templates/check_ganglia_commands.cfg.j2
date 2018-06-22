@@ -9,8 +9,3 @@ define command {
   command_name check_ganglia_heartbeat
   command_line /bin/sh {{ nagios_check_ganglia_plugins_path }}/check_heartbeat.sh host=$HOSTNAME$ threshold=$ARG1$
 }
-
-define command {
-  command_name check_host_alive_by_ganglia
-  command_line /bin/sh {{ nagios_check_ganglia_plugins_path }}/check_heartbeat.sh host=$HOSTNAME$ threshold={{ nagios_check_ganglia_heartbeat_threshold }}
-}

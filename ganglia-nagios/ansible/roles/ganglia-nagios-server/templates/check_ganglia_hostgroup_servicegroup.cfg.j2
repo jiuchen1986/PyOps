@@ -18,7 +18,7 @@ define host {
   check_interval {{ nagios_host_check_interval }}
   retry_interval {{ nagios_host_check_retry_interval }}
   max_check_attempts {{ nagios_host_check_max_retries }}
-  check_command check_host_alive_by_ganglia
+  check_command check_ganglia_heartbeat!{{ nagios_check_ganglia_heartbeat_threshold }}
   notification_interval {{ nagios_host_notification_interval }}
   contact_groups admins,{{ cluster_item }}-contacts
   register 0

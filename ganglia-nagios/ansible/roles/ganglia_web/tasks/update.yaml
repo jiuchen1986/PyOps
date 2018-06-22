@@ -13,12 +13,20 @@
       src: ganglia.conf.j2
       dest: /etc/httpd/conf.d/ganglia.conf
       
-  - name: Modify php config file
+  - name: Modify php config file with for auth_system
     lineinfile:
       path: /etc/ganglia/conf.php
       state: present
       regexp: 'auth_system'
-      line: "$conf['auth_system'] = '{{ ganglia_web_auth_system }}'"
+      line: "$conf['auth_system'] = '{{ ganglia_web_auth_system }}';"
+      insertbefore: '\?>'
+      
+  - name: Modify php config file with for rrds path
+    lineinfile:
+      path: /etc/ganglia/conf.php
+      state: present
+      regexp: 'rrds'
+      line: "$conf['rrds'] = '{{ gmetad_rrds_path }}';"
       insertbefore: '\?>'
   
   - name: Restart httpd with systemd
