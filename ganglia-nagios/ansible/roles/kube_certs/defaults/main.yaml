@@ -1,0 +1,9 @@
+# the actual cert name will be cluster_name-ganglia-nodes-reader
+cert_suffix_nodes_reader: ganglia-nodes-reader
+csr_file_nodes_reader: "{{ cert_suffix_nodes_reader }}-csr.json"
+cert_key_dir: /etc/ganglia/ganglia-kube-cert
+org: 'monitoring:ganglia'
+cn_nodes_reader: "{{ org }}:{{ cert_suffix_nodes_reader }}"
+cfssl_dir: /usr/local/cfssl
+cfssl_url: 'https://pkg.cfssl.org/R1.2/cfssl_linux-amd64'
+cfssljson_url: 'https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64'

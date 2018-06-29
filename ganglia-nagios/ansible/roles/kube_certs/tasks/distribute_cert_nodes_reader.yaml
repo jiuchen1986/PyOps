@@ -1,0 +1,20 @@
+# tasks to distribute cert and key for ganglia nodes reader to all the hosts in the cluster
+
+- name: Remove cert and key dir
+  shell: rm -rf "{{ cert_key_dir }}"
+  ignore_errors: yes
+
+- name: Make cert and key dir
+  shell: mkdir "{{ cert_key_dir }}"
+
+- name: Distribute the cert file to hosts
+  copy:
+    src: "{{ local_cert_key_dir }}/{{ cluster_name }}-{{ cert_suffix_nodes_reader }}.pem"
+    dest: "{{ cert_key_dir }}/{{ cert_suffix_nodes_reader }}.pem"
+    mode: 0644
+
+- name: Distribute the key file to hosts
+  copy:
+    src: "{{ local_cert_key_dir }}/{{ cluster_name }}-{{ cert_suffix_nodes_reader }}-key.pem"
+    dest: "{{ cert_key_dir }}/{{ cert_suffix_nodes_reader }}-key.pem"
+    mode: 0644

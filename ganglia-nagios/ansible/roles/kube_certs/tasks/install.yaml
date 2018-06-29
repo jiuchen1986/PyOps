@@ -1,0 +1,5 @@
+# tasks to generate cert and key for ganglia related clients accessing kubernetes apiserver
+# corresponding RBAC rules are created on the target kubernetes
+# for now, only reading authorizations for nodes info are granted
+
+- include_tasks: cluster_install.yaml

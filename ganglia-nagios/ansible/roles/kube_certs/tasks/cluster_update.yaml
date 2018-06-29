@@ -1,0 +1,4 @@
+# tasks to update cert and key on the hosts
+  
+- include_tasks: cluster_install.yaml
+

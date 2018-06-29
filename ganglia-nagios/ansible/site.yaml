@@ -24,6 +24,19 @@
       cluster_list: "{{ cluster_list }}"
       groups: ganglia-nagios-server
     when: single_cluster is defined
+  - name: Create temporary dir storing kube cert and key for ganglia client
+    file:
+      path: "{{ local_cert_key_dir }}"
+      state: directory
+    when: act == "install" or
+          act == "update" or
+          act == "cluster_install" or
+          act == "cluster_update"
+  - name: Remove temporary dir storing kube cert and key for ganglia client
+    file:
+      path: "{{ local_cert_key_dir }}"
+      state: absent
+    when: act == "uninstall"
   # - name: Dump hosts in 'clusters' group
     # debug:
       # msg: "host: {{ item }}, ansible_host: {{ hostvars[item]['ansible_host'] }}, cluster_role: {{ hostvars[item]['cluster_role'] }}, head: {{ hostvars[item]['gmond_cluster_head'] }}"
@@ -57,9 +70,10 @@
     when: act == 'install' or act == 'cluster_install'
   roles:
   - { role: gmond, tags: ['gmond'] }
-  - { role: ganglia-nagios-client, tags: ['ganglia_nagios_client'] }
+  - { role: kube_certs, tags: ['kube_certs'] }
+  - { role: ganglia_nagios_client, tags: ['ganglia_nagios_client'] }
   
 - hosts: ganglia-nagios-server
   become: yes
   roles:
-  - { role: ganglia-nagios-server, tags: ['ganglia_nagios_server'] }
+  - { role: ganglia_nagios_server, tags: ['ganglia_nagios_server'] }

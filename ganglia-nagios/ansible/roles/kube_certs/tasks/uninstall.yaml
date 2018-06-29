@@ -1,0 +1,31 @@
+# tasks to uninstall gmond on the monitored hosts
+
+- block:
+
+  # delete RBAC rules    
+  - name: Delete clusterrolebinding of 'ganglia-nodes-reader'
+    shell: kubectl delete clusterrolebinding ganglia-nodes-reader --ignore-not-found
+    environment:
+      KUBECONFIG: "{{ kubeconfig_path }}"
+      PATH: "{{ ansible_env.PATH }}:{{ kubectl_path }}"
+  
+  - name: Delete clusterrole of 'ganglia-nodes-reader'
+    shell: kubectl delete clusterrole ganglia-nodes-reader --ignore-not-found
+    environment:
+      KUBECONFIG: "{{ kubeconfig_path }}"
+      PATH: "{{ ansible_env.PATH }}:{{ kubectl_path }}"
+    
+  - name: Remove cfssl
+    file:
+      path: "{{ cfssl_dir }}"
+      state: absent
+  
+  when: (gmond_cluster_head[0].split(':')[0] == ansible_ens192.ipv4.address) or
+        (gmond_cluster_head[0].split(':')[0] == ansible_host) or
+        (gmond_cluster_head[0].split(':')[0] == inventory_hostname) or
+        (gmond_cluster_head[0].split(':')[0] == ansible_hostname)
+  
+- name: Remove cert and key
+  file:
+    path: "{{ cert_key_dir }}"
+    state: absent

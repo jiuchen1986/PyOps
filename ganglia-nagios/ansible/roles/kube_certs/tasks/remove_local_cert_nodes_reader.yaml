@@ -1,0 +1,13 @@
+# tasks to remove cert and key for ganglia nodes reader at the local host
+
+- name: Remove the local cert file
+  delegate_to: localhost
+  file:
+    path: "{{ local_cert_key_dir }}/{{ cluster_name }}-{{ cert_suffix_nodes_reader }}.pem"
+    state: absent
+
+- name: Remove the local key file
+  delegate_to: localhost
+  file:
+    path: "{{ local_cert_key_dir }}/{{ cluster_name }}-{{ cert_suffix_nodes_reader }}-key.pem"
+    state: absent

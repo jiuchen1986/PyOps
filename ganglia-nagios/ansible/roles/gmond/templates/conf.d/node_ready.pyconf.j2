@@ -3,6 +3,14 @@ modules {
   module {
     name     = "node_ready"
     language = "python"
+
+{% if cluster_type == 'erikube' %}    
+    
+    param kubelet_conf {
+      value = /etc/kubernetes/kubelet.conf
+
+    }
+{% endif %}
   }
 }
 
@@ -12,7 +20,7 @@ collection_group {
 
   metric {
     name = "node_ready"
-    title = "Node ready status"    
+    title = "Kube Node Ready Status"
   }
  
 }        

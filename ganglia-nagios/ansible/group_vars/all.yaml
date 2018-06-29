@@ -22,6 +22,7 @@ gmond_python_modules:
 - mem_stats
 - netstats
 - docker_ps
+- node_ready
 
 # list of names of other files required by the customized modules
 gmond_python_modules_attachs:
@@ -30,17 +31,20 @@ gmond_python_modules_attachs:
 # list of commands needed to be applied required by the customized modules
 gmond_python_modules_exec:
 - usermod -a -G root ganglia
+- usermod -a -G root ganglia
+- usermod -a -G docker ganglia
+- yum install -y python2-pip
+- yum install -y python-yaml
+- pip install requests_unixsocket
 
 # gmond python modules that only deployed on the host running as the head of the cluster
-gmond_head_python_modules:
-- node_ready
+gmond_head_python_modules: []
 
 # list of names of other files required by the customized modules for the head
 gmond_head_python_modules_attachs: []
 
 # list of commands needed to be applied required by the customized modules for the head
-gmond_head_python_modules_exec:
-- chmod 0644 /etc/kubernetes/admin.conf
+gmond_head_python_modules_exec: []
 
 # list services managed by systemd on the monitored hosts which are checked, could be overwrited in the group's vars
 gmond_systemd_check_services:
@@ -86,7 +90,6 @@ gmond_udp_recv_buffer: 10485760
 
 # the interval that the gmond sending data
 gmond_udp_send_ttl: 1
-
 
 
 
@@ -186,13 +189,32 @@ nagios_check_ganglia_metrics:
   - master
   cluster_type:
   - erikube
-
-# services checked targeting only on the host running as the head of the cluster
-nagios_check_ganglia_head_metrics:
 - name: node_ready
   oper: less
   warn_val: 1
   crit_val: 1.5
+  cluster_role:
+  - master
+  - worker
   cluster_type:
   - kubespray
   - erikube
+
+# services checked targeting only on the host running as the head of the cluster
+nagios_check_ganglia_head_metrics: []
+
+
+# Path to kubeconfig file for kubectl
+kubeconfig_path: /etc/kubernetes/admin.conf
+
+# Path to kubectl
+kubectl_path: /usr/local/bin
+
+# CA cert path for the kubernetes cluster
+kube_ca_cert: /etc/kubernetes/ssl/ca.pem
+
+# CA key path for the kubernetes cluster
+kube_ca_key: /etc/kubernetes/ssl/ca-key.pem
+
+# Temporary dir storing the genterated kube cert and key for ganglia client on the local host
+local_cert_key_dir: /root/kube_cert_key

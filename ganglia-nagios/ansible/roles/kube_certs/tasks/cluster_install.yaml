@@ -1,0 +1,41 @@
+# tasks to generate cert and key for ganglia related clients accessing kubernetes apiserver
+# corresponding RBAC rules are created on the target kubernetes
+# for now, only reading authorizations for nodes info are granted
+
+- name: Get cluster name
+  set_fact:
+    cluster_name: "{{ item }}"
+  with_items: "{{ cluster_list }}"
+  when: item in group_names
+
+- block:
+
+  # checking the existance of the RBAC rules on the host running as gmong head
+  - name: Check RBAC rules for ganglia nodes reader
+    shell: kubectl get clusterrole ganglia-nodes-reader
+    ignore_errors: yes
+    environment:
+      KUBECONFIG: "{{ kubeconfig_path | default('/etc/kubernetes/admin.conf') }}"
+      PATH: "{{ ansible_env.PATH }}:{{ kubectl_path | default('/usr/local/bin') }}"
+    register: result
+    
+  - include_tasks: create_rbac_nodes_reader.yaml
+    environment:
+      KUBECONFIG: "{{ kubeconfig_path | default('/etc/kubernetes/admin.conf') }}"
+      PATH: "{{ ansible_env.PATH }}:{{ kubectl_path | default('/usr/local/bin') }}"
+    when: result is failed
+    
+  - include_tasks: create_cert_nodes_reader.yaml
+  
+  when: (gmond_cluster_head[0].split(':')[0] == ansible_ens192.ipv4.address) or
+        (gmond_cluster_head[0].split(':')[0] == ansible_host) or
+        (gmond_cluster_head[0].split(':')[0] == inventory_hostname) or
+        (gmond_cluster_head[0].split(':')[0] == ansible_hostname)
+
+- include_tasks: distribute_cert_nodes_reader.yaml
+
+- include_tasks: remove_local_cert_nodes_reader.yaml
+  when: (gmond_cluster_head[0].split(':')[0] == ansible_ens192.ipv4.address) or
+        (gmond_cluster_head[0].split(':')[0] == ansible_host) or
+        (gmond_cluster_head[0].split(':')[0] == inventory_hostname) or
+        (gmond_cluster_head[0].split(':')[0] == ansible_hostname)

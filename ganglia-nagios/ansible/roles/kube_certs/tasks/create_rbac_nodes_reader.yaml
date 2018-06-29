@@ -1,0 +1,8 @@
+# tasks to create RBAC rules to authorized get, list, and watch of nodes info 
+# to a group named 'monitoring:ganglia' 
+
+- name: Create clusterrole of 'ganglia-nodes-reader'
+  shell: kubectl create clusterrole ganglia-nodes-reader --verb=get,list,watch --resource=nodes --save-config
+  
+- name: Create clusterrolebinding of 'ganglia-nodes-reader'
+  shell: kubectl create clusterrolebinding ganglia-nodes-reader --clusterrole=ganglia-nodes-reader --group=monitoring:ganglia --save-config

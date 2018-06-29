@@ -1,0 +1,97 @@
+# tasks to generate cert and key for ganglia nodes reader with cfssl tool
+# and fetch the files to the local for distributing later
+
+- name: Make cfssl dir
+  file:
+    path: "{{ cfssl_dir }}"
+    state: directory
+    mode: 0766
+
+- name: Download cfssl
+  get_url:
+    url: "{{ cfssl_url }}"
+    dest: "{{ cfssl_dir }}/cfssl"
+    force: no
+    mode: 0755
+    validate_certs: no
+
+- name: Download cfssljson
+  get_url:
+    url: "{{ cfssljson_url }}"
+    dest: "{{ cfssl_dir }}/cfssljson"
+    force: no
+    mode: 0755
+    validate_certs: no
+
+- name: Copy cfssl config file
+  template:
+    src: cfssl-config.json.j2
+    dest: "{{ cfssl_dir }}/cfssl-config.json"
+    mode: 0644
+
+- name: Copy cfssl csr file
+  template:
+    src: "{{ csr_file_nodes_reader }}.j2" 
+    dest: "{{ cfssl_dir }}/{{ csr_file_nodes_reader }}"
+    mode: 0644
+
+- name: Allow to read ca cert
+  file:
+    path: "{{ kube_ca_cert }}"
+    state: file
+    mode: 0644
+
+- name: Allow to read ca key
+  file:
+    path: "{{ kube_ca_key }}"
+    state: file
+    mode: 0644
+
+- name: Generate key and cert on the master host
+  shell: ./cfssl gencert -ca={{ kube_ca_cert }} -ca-key={{ kube_ca_key }} --config=cfssl-config.json -profile={{ cert_suffix_nodes_reader}} {{ csr_file_nodes_reader }} | ./cfssljson -bare {{ cert_suffix_nodes_reader }}
+  args:
+    chdir: "{{ cfssl_dir }}"
+
+- name: Fetch the cert file to local
+  fetch:
+    src: "{{ cfssl_dir }}/{{ cert_suffix_nodes_reader }}.pem"
+    dest: "{{ local_cert_key_dir }}/{{ cluster_name }}-{{ cert_suffix_nodes_reader }}.pem"
+    flat: yes
+
+- name: Fetch the key file to local
+  fetch:
+    src: "{{ cfssl_dir }}/{{ cert_suffix_nodes_reader }}-key.pem"
+    dest: "{{ local_cert_key_dir }}/{{ cluster_name }}-{{ cert_suffix_nodes_reader }}-key.pem"
+    flat: yes
+
+- name: Remove the generated cert file
+  file:
+    path: "{{ cfssl_dir }}/{{ cert_suffix_nodes_reader }}.pem"
+    state: absent
+
+- name: Remove the generated key file
+  file:
+    path: "{{ cfssl_dir }}/{{ cert_suffix_nodes_reader }}-key.pem"
+    state: absent
+    
+- name: Remove cfssl config file
+  file:
+    path: "{{ cfssl_dir }}/cfssl-config.json"
+    state: absent
+
+- name: Remove cfssl csr file
+  file: 
+    path: "{{ cfssl_dir }}/{{ csr_file_nodes_reader }}"
+    state: absent
+    
+- name: Deny to read ca cert
+  file:
+    path: "{{ kube_ca_cert }}"
+    state: file
+    mode: 0600
+
+- name: Deny to read ca key
+  file:
+    path: "{{ kube_ca_key }}"
+    state: file
+    mode: 0600
