@@ -6,7 +6,7 @@
     register: result
     ignore_errors: yes
   
-  - name: Delete contact from the admin group
+  - name: Delete contact from the cluster contact group
     become: yes
     shell: sed -i 's/,{{ item }}//g' /etc/nagios/conf.d/{{ cluster_item }}_contacts.cfg
     when: result is succeeded

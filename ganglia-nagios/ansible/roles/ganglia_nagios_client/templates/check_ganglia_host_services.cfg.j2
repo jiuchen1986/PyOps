@@ -12,6 +12,27 @@ define host {
 {% set host_cluster_role = cluster_role.split(',') %}
 {% endif %}
 
+define service {
+  use local-service
+  name {{ ansible_fqdn.split('.')[0] }}-check-ganglia-gmond-heartbeat
+  service_groups {{ cluster_item }}-ganglia-metrics
+  check_interval {{ nagios_check_ganglia_check_interval }}
+  retry_interval {{ nagios_check_ganglia_check_retry_interval }}
+  max_check_attempts {{ nagios_check_ganglia_check_max_retries }}
+  notification_interval {{ nagios_check_ganglia_notification_interval }}
+  host_name {{ ansible_fqdn }}
+  service_description check-ganglia-gmond-heartbeat
+{% if nagios_check_ganglia_heartbeat_cluster_notify | default('yes' | bool) %}
+  contact_groups admins,{{ cluster_item }}-contacts
+{% else %}
+  contact_groups admins
+{% endif %}
+{% if not nagios_check_ganglia_heartbeat_notify | default('yes' | bool) %}
+  notifications_enabled 0
+{% endif %}
+  check_command check_ganglia_heartbeat!{{ nagios_check_ganglia_heartbeat_threshold }}
+}
+
 {% for metric in nagios_check_ganglia_metrics %}
 {% if (host_cluster_role | default([]) | intersect(metric.cluster_role | default([])) | length() > 0 or
        metric.cluster_role | default([]) == []) and
@@ -20,10 +41,10 @@ define service {
   use local-service
   name {{ ansible_fqdn.split('.')[0] }}-check-ganglia-{{ metric.name }}
   service_groups {{ cluster_item }}-ganglia-metrics
-  check_interval {{ nagios_check_ganglia_check_interval }}
-  retry_interval {{ nagios_check_ganglia_check_retry_interval }}
-  max_check_attempts {{ nagios_check_ganglia_check_max_retries }}
-  notification_interval {{ nagios_check_ganglia_notification_interval }}
+  check_interval {{ metric.check_interval | default(nagios_check_ganglia_check_interval) }}
+  retry_interval {{ metric.retry_interval | default(nagios_check_ganglia_check_retry_interval) }}
+  max_check_attempts {{ metric.max_retries | default(nagios_check_ganglia_check_max_retries) }}
+  notification_interval {{ metric.notify_interval | default(nagios_check_ganglia_notification_interval) }}
   host_name {{ ansible_fqdn }}
   service_description check-ganglia-{{ metric.name }}
 {% if metric.cluster_notify | default('yes' | bool) %}
@@ -36,6 +57,17 @@ define service {
 {% endif %}
   check_command check_ganglia_metric!{{ metric.name }},{{ metric.oper }},{{ metric.warn_val }},{{ metric.oper }},{{ metric.crit_val }}
 }
+
+{% if nagios_check_ganglia_service_dependency | default('yes' | bool) %}
+define servicedependency {
+  host_name {{ ansible_fqdn }}
+  service_description check-ganglia-gmond-heartbeat
+  dependent_host_name {{ ansible_fqdn }}
+  dependent_service_description check-ganglia-{{ metric.name }}
+  execution_failure_criteria u,c
+  notification_failure_criteria u,c
+}
+{% endif %}
 
 {% endif %}
 {% endfor %}
@@ -66,6 +98,17 @@ define service {
 {% endif %}
   check_command check_ganglia_metric!{{ metric.name }},{{ metric.oper }},{{ metric.warn_val }},{{ metric.oper }},{{ metric.crit_val }}
 }
+
+{% if nagios_check_ganglia_service_dependency | default('yes' | bool) %}
+define servicedependency {
+  host_name {{ ansible_fqdn }}
+  service_description check-ganglia-gmond-heartbeat
+  dependent_host_name {{ ansible_fqdn }}
+  dependent_service_description check-ganglia-{{ metric.name }}
+  execution_failure_criteria u,c
+  notification_failure_criteria u,c
+}
+{% endif %}
 
 {% endif %}
 {% endfor %}
