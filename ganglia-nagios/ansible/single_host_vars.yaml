@@ -1,0 +1,116 @@
+---
+single_cluster: xxx
+ganglia_nagios_server: localhost
+   
+# the contact list that only receive notifications related to the current cluster
+cluster_contacts:
+- xxx xxx
+
+
+cluster_type: erikube
+
+gmond_systemd_check_services:
+- kubelet
+- docker
+- etcd_container
+
+# ganglia metrics checked by nagios with warning and critical values
+nagios_check_ganglia_metrics:
+- name: load_one
+  oper: more
+  warn_val: 25
+  crit_val: 30
+  cluster_notify: no
+- name: cpu_idle
+  oper: less
+  warn_val: 40
+  crit_val: 10
+  cluster_notify: no
+- name: cpu_wio
+  oper: more
+  warn_val: 50
+  crit_val: 90
+  cluster_notify: no
+- name: disk_free_percent_rootfs
+  oper: less
+  warn_val: 10
+  crit_val: 5
+  cluster_notify: no
+- name: mem_used_percent
+  oper: more
+  warn_val: 80
+  crit_val: 90
+  cluster_notify: no
+- name: service-status-kubelet
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - worker
+  - master
+  cluster_type:
+  - kubespray
+  - erikube
+- name: service-status-docker
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - worker
+  - master
+- name: docker_ps
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - worker
+  - master
+- name: service-status-etcd
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - master
+  cluster_type:
+  - kubespray
+- name: service-status-etcd_container
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - master
+  cluster_type:
+  - erikube
+- name: node_ready
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  check_interval: 0.5
+  retry_interval: 0.5
+  max_retries: 1
+  cluster_role:
+  - master
+  - worker
+  cluster_type:
+  - kubespray
+  - erikube
+
+# CA cert path for the kubernetes cluster
+kube_ca_cert: /etc/kubernetes/pki/ca.crt
+
+# CA key path for the kubernetes cluster
+kube_ca_key: /etc/kubernetes/pki/ca.key
+
+
+  
+# the nodes that are connected by gmetad                     
+gmond_cluster_head:
+- "xxx.xxx.xxx.xxx:{{ gmond_multicast_port }}"
+
+gmond_multicast_port: xxxx
+
+# the nodes in the cluster on which gmonds are hearing data from other gmonds, only useful when 'gmond_mode' is 'unicast'
+gmond_cluster_listeners: []
+
+# the nodes in the cluster on which gmonds are deaf, only useful when 'gmond_mode' is 'unicast'                  
+gmond_cluster_deaf_yes: []

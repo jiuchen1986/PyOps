@@ -53,7 +53,7 @@ An example of the modified inventory file is given in a file named `single_clust
 - SSH parameters required to connect to the hosts in the cluster, e.g. `ansible_user`, `ansible_ssh_pass`, or `ansible_become_pass`, add them into this inventory file too.
 
 ### Plan extra vars for the playbook
-In order to overwrite the variables' values in `group_vars/all.yaml`, variables for operations on the single cluster must be input using `-e` or `--extra-vars` when calling the playbook. The recognized variables for the current implementation are listed below:
+In order to overwrite the variables' values in `group_vars/all.yaml`, variables for operations on the single cluster must be input using `-e` or `--extra-vars` when calling the playbook. Some recognized variables for the current implementation are listed below:
 
 - **single_cluster**: the name of the current cluster
 - **ganglia\_nagios\_server**: a resolvable name or a reachable ip address of the installed monitoring server running ganglia-gmetad, ganglia-web and nagios core. **Note** that if ssh parameters, such as `ansible_user`, `ansible_ssh_pass`, or `ansible_become_pass`, are required to connect to the server from the host running the playbooks, add these parameters into `group_vars/ganglia-nagios-server.yaml`
@@ -106,6 +106,7 @@ Then the example for a single cluster of type `kubespray` using default systemd 
 
 - Notice the differences on the input variables of `gmond_systemd_check_services` and `cluster_type` between above examples for different cluster types.
 - Actually all the variables defined in `group_vars/all.yaml` and `group_vars/ganglia-nagios-server.yaml` could be overwritten by setting via `-e` flags in the command line.
+- In case too much inputs at command line, a yaml/json file containing the extra variables could be used by `-e "@extra_vars_file.yaml/json"`. See `single_host_vars.yaml` for example.
 - The meaning of `-e "act=cluster_install"` will be described later.
 
 ### Setup monitoring for the cluster
@@ -400,4 +401,18 @@ Follow the below steps to add multiple nagios contacts in the cluster-specific g
 Follow the below steps to delete multiple nagios contacts from the cluster-specific group(s).
 
 - Add the information of the contacts to be deleted to the list variable `cluster_contacts` in the cluster-specific variable file, e.g. `group_vars/goes.yaml`, or via `-e {'cluster_contacts': ['xxx']}` at command line for the single cluster operation.
-- Run the playbook with `-e "act=cluster_contacts_delete"` and and `-t "ganglia_nagios_server"`, with the inventory files indicating to the hosts of `ganglia-nagios-server` group **along with the related clusters' groups**. 
+- Run the playbook with `-e "act=cluster_contacts_delete"` and and `-t "ganglia_nagios_server"`, with the inventory files indicating to the hosts of `ganglia-nagios-server` group **along with the related clusters' groups**.
+
+
+## Cert/Key Generation Accessing To Kubernetes API-Server
+For monitoring hosts running a kubernetes cluster, sometimes accessing to the apiserver to gather information of the kuberentes cluster maybe needed. This project has been integrated a procedure generating the necessary certificates and keys used to access to kubernetes api.
+
+For now, only the authorization for getting node information of kubernetes cluster is granted. See `roles/kube_certs`.
+
+
+## Default Checking Rules of Nagios
+There some checking rules by nagios in this project:
+
+- The `check_ssh` plugin is used to check alive of the hosts. Change the `check_command` field in `check_ganglia_hostgroup_servicegroup.cfg.j2` at `roles/ganglia_nagios_server/templates/` if the other command want to be used.
+- The `check_hearteat.sh` provided by ganglia for integrating with nagios is used as a `check_ganglia_heartbeat` checking service to measure the liveness of the gmond agent on the target host, which is added to each host by default.
+- All the other checking services on each host depends on the `check_ganglia_heartbeat` to mitigate massive alerts when the monitoring server itself becomes unstable.
