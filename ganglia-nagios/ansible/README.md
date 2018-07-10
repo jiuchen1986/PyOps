@@ -106,7 +106,10 @@ Then the example for a single cluster of type `kubespray` using default systemd 
 
 - Notice the differences on the input variables of `gmond_systemd_check_services` and `cluster_type` between above examples for different cluster types.
 - Actually all the variables defined in `group_vars/all.yaml` and `group_vars/ganglia-nagios-server.yaml` could be overwritten by setting via `-e` flags in the command line.
-- In case too much inputs at command line, a yaml/json file containing the extra variables could be used by `-e "@extra_vars_file.yaml/json"`. See `single_host_vars.yaml` for example.
+- In case too much inputs at command line, a yaml/json file containing the extra variables could be used by `-e "@extra_vars_file.yaml/json"`. See `single_host_vars.yaml` for example. Then, the playbook can be run as
+
+        ansible-playbook -i path_to_your_inventory_file -e "act=cluster_cluster" -e "@extra_vars_file.yaml" site.yaml
+
 - The meaning of `-e "act=cluster_install"` will be described later.
 
 ### Setup monitoring for the cluster
