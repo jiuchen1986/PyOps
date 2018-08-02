@@ -94,6 +94,9 @@ gmond_udp_send_ttl: 1
 
 
 
+# hostname type, either the "short" name or the "fqdn", used by nagios to check the host's metrics from ganglia
+nagios_check_ganglia_hostname_type: fqdn
+
 # whether enable the nagios checking ganglia services' dependencies to supress massive alerts
 # when it is enalbed, all the nagios checking ganglia services on each host will depend on the gmond heartbeat service
 nagios_check_ganglia_service_dependency: yes

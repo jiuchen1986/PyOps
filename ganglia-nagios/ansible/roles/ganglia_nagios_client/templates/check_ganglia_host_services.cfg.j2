@@ -3,7 +3,11 @@
 # host definition
 define host {
   use {{ cluster_item }}-host
+{% if nagios_check_ganglia_hostname_type | default('fqdn') == 'fqdn' %} 
   host_name {{ ansible_fqdn }}
+{% else %}
+  host_name {{ ansible_fqdn.split('.')[0] }}
+{% endif %}
   address {{ inventory_hostname }}
 }
 
@@ -20,7 +24,11 @@ define service {
   retry_interval {{ nagios_check_ganglia_check_retry_interval }}
   max_check_attempts {{ nagios_check_ganglia_check_max_retries }}
   notification_interval {{ nagios_check_ganglia_notification_interval }}
+{% if nagios_check_ganglia_hostname_type | default('fqdn') == 'fqdn' %} 
   host_name {{ ansible_fqdn }}
+{% else %}
+  host_name {{ ansible_fqdn.split('.')[0] }}
+{% endif %}
   service_description check-ganglia-gmond-heartbeat
 {% if nagios_check_ganglia_heartbeat_cluster_notify | default('yes' | bool) %}
   contact_groups admins,{{ cluster_item }}-contacts
@@ -45,7 +53,11 @@ define service {
   retry_interval {{ metric.retry_interval | default(nagios_check_ganglia_check_retry_interval) }}
   max_check_attempts {{ metric.max_retries | default(nagios_check_ganglia_check_max_retries) }}
   notification_interval {{ metric.notify_interval | default(nagios_check_ganglia_notification_interval) }}
+{% if nagios_check_ganglia_hostname_type | default('fqdn') == 'fqdn' %} 
   host_name {{ ansible_fqdn }}
+{% else %}
+  host_name {{ ansible_fqdn.split('.')[0] }}
+{% endif %}
   service_description check-ganglia-{{ metric.name }}
 {% if metric.cluster_notify | default('yes' | bool) %}
   contact_groups admins,{{ cluster_item }}-contacts
@@ -60,9 +72,17 @@ define service {
 
 {% if nagios_check_ganglia_service_dependency | default('yes' | bool) %}
 define servicedependency {
+{% if nagios_check_ganglia_hostname_type | default('fqdn') == 'fqdn' %} 
   host_name {{ ansible_fqdn }}
+{% else %}
+  host_name {{ ansible_fqdn.split('.')[0] }}
+{% endif %}
   service_description check-ganglia-gmond-heartbeat
+{% if nagios_check_ganglia_hostname_type | default('fqdn') == 'fqdn' %} 
   dependent_host_name {{ ansible_fqdn }}
+{% else %}
+  dependent_host_name {{ ansible_fqdn.split('.')[0] }}
+{% endif %}
   dependent_service_description check-ganglia-{{ metric.name }}
   execution_failure_criteria u,c
   notification_failure_criteria u,c
@@ -86,7 +106,11 @@ define service {
   retry_interval {{ nagios_check_ganglia_check_retry_interval }}
   max_check_attempts {{ nagios_check_ganglia_check_max_retries }}
   notification_interval {{ nagios_check_ganglia_notification_interval }}
+{% if nagios_check_ganglia_hostname_type | default('fqdn') == 'fqdn' %} 
   host_name {{ ansible_fqdn }}
+{% else %}
+  host_name {{ ansible_fqdn.split('.')[0] }}
+{% endif %}
   service_description check-ganglia-{{ metric.name }}
 {% if metric.cluster_notify | default('yes' | bool) %}
   contact_groups admins,{{ cluster_item }}-contacts
@@ -101,9 +125,17 @@ define service {
 
 {% if nagios_check_ganglia_service_dependency | default('yes' | bool) %}
 define servicedependency {
+{% if nagios_check_ganglia_hostname_type | default('fqdn') == 'fqdn' %} 
   host_name {{ ansible_fqdn }}
+{% else %}
+  host_name {{ ansible_fqdn.split('.')[0] }}
+{% endif %}
   service_description check-ganglia-gmond-heartbeat
+{% if nagios_check_ganglia_hostname_type | default('fqdn') == 'fqdn' %} 
   dependent_host_name {{ ansible_fqdn }}
+{% else %}
+  dependent_host_name {{ ansible_fqdn.split('.')[0] }}
+{% endif %}
   dependent_service_description check-ganglia-{{ metric.name }}
   execution_failure_criteria u,c
   notification_failure_criteria u,c
