@@ -5,7 +5,7 @@
   ignore_errors: yes
 
 - name: Make cert and key dir
-  shell: mkdir "{{ cert_key_dir }}"
+  shell: mkdir -p "{{ cert_key_dir }}"
 
 - name: Distribute the cert file to hosts
   copy:
