@@ -2,6 +2,8 @@
 ansible_not_get_facts: no
 # ansible_distribution: CentOS
 
+known_domain: ""
+
 # a variable to list all clusters to be monitored, the name of cluster must be identical to the corresponding ansible host group name
 cluster_list:
 #- goes
@@ -91,7 +93,11 @@ gmond_udp_recv_buffer: 10485760
 # the interval that the gmond sending data
 gmond_udp_send_ttl: 1
 
+# the nodes in the cluster on which gmonds are hearing data from other gmonds, only useful when 'gmond_mode' is 'unicast'
+gmond_cluster_listeners: []
 
+# the nodes in the cluster on which gmonds are deaf, only useful when 'gmond_mode' is 'unicast'                  
+gmond_cluster_deaf_yes: []
 
 
 # hostname type, either the "short" name or the "fqdn", used by nagios to check the non-head host's metrics from ganglia
