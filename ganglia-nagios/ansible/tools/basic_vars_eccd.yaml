@@ -2,7 +2,6 @@
 # the contact list that only receive notifications related to the current cluster
 cluster_contacts:
 - Ting Yan
-- Wei Wang
 
 cluster_type: erikube
 
@@ -15,13 +14,13 @@ gmond_systemd_check_services:
 nagios_check_ganglia_metrics:
 - name: load_one
   oper: more
-  warn_val: 10
-  crit_val: 20
+  warn_val: 20
+  crit_val: 40
   cluster_notify: no
 - name: cpu_idle
   oper: less
-  warn_val: 30
-  crit_val: 10
+  warn_val: 9
+  crit_val: 6
   cluster_notify: no
 - name: cpu_wio
   oper: more

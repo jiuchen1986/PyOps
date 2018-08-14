@@ -23,10 +23,5 @@
       xxx.xxx.xxx.xxx: xxx.com
   tasks:
   - name: Add hostnames info to hosts file on the target host
-    lineinfile:
-      path: /etc/hosts
-      line: '{{ item.key }}    {{ item.value }}'
-      owner: root
-      group: root
-      mode: 0644
+    include_tasks: add_hostname.yaml
     with_dict: "{{ host_maps }}"

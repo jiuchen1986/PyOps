@@ -1,0 +1,10 @@
+- name: Check host existence in hosts file
+  shell: grep {{ item.key }} /etc/hosts
+  register: result
+  ignore_errors: yes
+
+- name: Add hostname info to hosts file
+  lineinfile:
+    path: /etc/hosts
+    line: '{{ item.key }}    {{ item.value }}'
+  when: result is failed
