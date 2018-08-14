@@ -4,11 +4,11 @@ import argparse
 import os
 import shutil
 
-DEFAULT_SIN_GEN_FILE = "gen_inv_and_vars.sh"
+DEFAULT_SIN_GEN_FILE = "/root/ansible/tools/gen_inv_and_vars.sh"
 DEFAULT_OUTPUT_DIR = "/root/ansible/gen_inv_vars"
-DEFAULT_BAS_VARS_FILE = "basic_vars_eccd.yaml"
-DEFAULT_PORTS_FILE = "cluster_gmond_ports"
-DEFAULT_ADD_HOSTS_FILE = "add_hostnames_to_hosts.yaml"
+DEFAULT_BAS_VARS_FILE = "/root/ansible/tools/basic_vars_eccd.yaml"
+DEFAULT_PORTS_FILE = "/root/ansible/tools/cluster_gmond_ports"
+DEFAULT_ADD_HOSTS_FILE = "/root/ansible/tools/add_hostnames_to_hosts.yaml"
 DEFAULT_GROUP_VARS_DIR = "/root/ansible/group_vars"
 DEFAULT_INVENTORY_DIR = "/root/ansible/inventory"
 
