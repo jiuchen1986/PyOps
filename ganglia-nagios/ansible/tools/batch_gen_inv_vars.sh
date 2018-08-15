@@ -6,6 +6,7 @@ import shutil
 import yaml
 
 DEFAULT_SIN_GEN_FILE = "/root/ansible/tools/gen_inv_and_vars.sh"
+DEFAULT_CONTACTS_FILE = "/root/ansible/tools/contact_cluster_maps"
 DEFAULT_OUTPUT_DIR = "/root/ansible/gen_inv_vars"
 DEFAULT_BAS_VARS_FILE = "/root/ansible/tools/basic_vars_eccd.yaml"
 DEFAULT_PORTS_FILE = "/root/ansible/tools/cluster_gmond_ports"
@@ -15,6 +16,8 @@ DEFAULT_INVENTORY_DIR = "/root/ansible/inventory"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-l", "--clusterlist", help="cluster list splitted by comma")
+parser.add_argument("-c", "--contacts", help="file containing the mapping between contacts and clusters, \
+                                                default is \"%s\"" % DEFAULT_CONTACTS_FILE)
 parser.add_argument("-v", "--basicvars", help="path to the basic vars file, default is \"%s\"" % DEFAULT_BAS_VARS_FILE)
 parser.add_argument("-o", "--outputdir", help="dir storing the output files, default is \"%s\"" % DEFAULT_OUTPUT_DIR)
 parser.add_argument("-s", "--singlegen", help="path to the script file that generate inv and vars for a single cluster, \
@@ -38,6 +41,11 @@ if args.singlegen:
   sin_gen_file = os.path.abspath(args.singlegen)
 else:
   sin_gen_file = os.path.abspath(DEFAULT_SIN_GEN_FILE)
+
+if args.contacts:
+  contacts_file = os.path.abspath(args.contacts)
+else:
+  contacts_file = os.path.abspath(DEFAULT_CONTACTS_FILE)
 
 if args.outputdir:
   abs_output_dir = os.path.abspath(args.outputdir)
@@ -90,8 +98,13 @@ for c in cluster_list:
     os._exit(1)
 
   # generate inventory and vars file for a single cluster
-  cmd_str = "%s -n %s -v %s -o %s -i %s -t short -g %s" % (sin_gen_file, c, bas_vars_file, \
-                                                           abs_output_dir, ori_inv_file, ports_file)
+  contact_str = ''
+  with open(contacts_file, 'r') as con_f:
+    con = yaml.load(con_f)
+    contact_str = ','.join(con.get(c, []))
+    con_f.close()
+  cmd_str = "%s -n %s -v %s -o %s -i %s -t short -g %s -c \"%s\"" % (sin_gen_file, c, bas_vars_file, \
+                                                           abs_output_dir, ori_inv_file, ports_file, contact_str)
   if os.system(cmd_str) != 0:
     os._exit(1)
 
