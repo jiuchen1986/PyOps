@@ -16,7 +16,7 @@
       state: started
       enabled: yes
       
-  - name: Modify php config file with for auth_system
+  - name: Modify php config file for auth_system
     lineinfile:
       path: /etc/ganglia/conf.php
       state: present
@@ -24,12 +24,28 @@
       line: "$conf['auth_system'] = '{{ ganglia_web_auth_system }}';"
       insertbefore: '\?>'
       
-  - name: Modify php config file with for rrds path
+  - name: Modify php config file for rrds path
     lineinfile:
       path: /etc/ganglia/conf.php
       state: present
       regexp: 'rrds'
       line: "$conf['rrds'] = '{{ gmetad_rrds_path }}';"
+      insertbefore: '\?>'
+      
+  - name: Modify php config file for enabling nagios cache
+    lineinfile:
+      path: /etc/ganglia/conf.php
+      state: present
+      regexp: 'nagios_cache_enabled'
+      line: "$conf['nagios_cache_enabled'] = 1;"
+      insertbefore: '\?>'
+      
+  - name: Modify php config file for expire time of nagios cache
+    lineinfile:
+      path: /etc/ganglia/conf.php
+      state: present
+      regexp: 'nagios_cache_time'
+      line: "$conf['nagios_cache_time'] = {{ nagios_check_ganglia_cache_expire_time }};"
       insertbefore: '\?>'
 
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

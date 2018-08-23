@@ -1,0 +1,35 @@
+# tasks to define a updater to frequently update the ganglia-nagios cache
+
+- block:
+
+  - name: Add customized warmup_metric_cache.php
+    template:
+      src: warmup_metric_cache.php.j2
+      dest: /usr/share/ganglia/nagios/warmup_metric_cache.php
+      owner: root
+      group: root
+      
+  - name: Add customized warmup_metric_cache.sh
+    template:
+      src: warmup_metric_cache.sh.j2
+      dest: /usr/share/ganglia/nagios/warmup_metric_cache.sh
+      mode: 0755
+      owner: root
+      group: root
+  
+  - name: Add a systemd service to keep updating cache
+    copy:
+      src: cacheupdater.service
+      dest: /usr/lib/systemd/system/cacheupdater.service
+      mode: 0644
+      owner: root
+      group: root
+      
+  - name: Enable and start the cache updating service
+    systemd:
+      name: cacheupdater
+      state: started
+      enabled: yes
+
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+

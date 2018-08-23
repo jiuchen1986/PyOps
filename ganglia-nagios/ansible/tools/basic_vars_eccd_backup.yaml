@@ -12,22 +12,55 @@ gmond_systemd_check_services:
 
 # ganglia metrics checked by nagios with warning and critical values
 nagios_check_ganglia_metrics:
-- name: basic_system
+- name: load_one
+  oper: more
+  warn_val: 20
+  crit_val: 40
   cluster_notify: no
-  multi_metrics:
-  - load_one,more,20,more,40
-  - cpu_idle,less,9,6
-  - cpu_wio,more,50,more,90
-  - disk_free_percent_rootfs,less,10,less,5
-  - mem_used_percent,more,80,more,90
-- name: kubelet_and_docker
+- name: cpu_idle
+  oper: less
+  warn_val: 9
+  crit_val: 6
+  cluster_notify: no
+- name: cpu_wio
+  oper: more
+  warn_val: 50
+  crit_val: 90
+  cluster_notify: no
+- name: disk_free_percent_rootfs
+  oper: less
+  warn_val: 10
+  crit_val: 5
+  cluster_notify: no
+- name: mem_used_percent
+  oper: more
+  warn_val: 80
+  crit_val: 90
+  cluster_notify: no
+- name: service-status-kubelet
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
   cluster_role:
   - worker
   - master
-  multi_metrics:
-  - service-status-kubelet,less,1,less,1.5
-  - service-status-docker,less,1,less,1.5
-  - docker_ps,less,1,less,1.5
+  cluster_type:
+  - kubespray
+  - erikube
+- name: service-status-docker
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - worker
+  - master
+- name: docker_ps
+  oper: less
+  warn_val: 1
+  crit_val: 1.5
+  cluster_role:
+  - worker
+  - master
 - name: service-status-etcd
   oper: less
   warn_val: 1

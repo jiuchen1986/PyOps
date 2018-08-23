@@ -29,6 +29,22 @@
       line: "$conf['rrds'] = '{{ gmetad_rrds_path }}';"
       insertbefore: '\?>'
   
+  - name: Modify php config file for enabling nagios cache
+    lineinfile:
+      path: /etc/ganglia/conf.php
+      state: present
+      regexp: 'nagios_cache_enabled'
+      line: "$conf['nagios_cache_enabled'] = 1;"
+      insertbefore: '\?>'
+      
+  - name: Modify php config file for expire time of nagios cache
+    lineinfile:
+      path: /etc/ganglia/conf.php
+      state: present
+      regexp: 'nagios_cache_time'
+      line: "$conf['nagios_cache_time'] = {{ nagios_check_ganglia_cache_expire_time }};"
+      insertbefore: '\?>'
+  
   - name: Restart httpd with systemd
     systemd:
       name: httpd

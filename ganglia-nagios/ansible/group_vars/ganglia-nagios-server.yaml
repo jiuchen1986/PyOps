@@ -27,6 +27,15 @@ ganglia_web_auth_file: /etc/ganglia/http.auth
 # switch of ganglia web auth system configured in /etc/ganglia/conf.php
 ganglia_web_auth_system: disabled
 
+# net.ipv4.tcp_fin_timeout in sysctl at the ganglia web server
+ganglia_web_tcp_fin_timeout: 20
+
+# net.ipv4.tcp_max_syn_backlog in sysctl at the ganglia web server
+ganglia_web_tcp_max_syn_backlog: 8192
+
+# net.ipv4.tcp_max_tw_bukets in sysctl at the ganglia web server
+ganglia_web_tcp_max_tw_bukets: 5000
+
 
 
 
@@ -58,4 +67,14 @@ nagios_contacts:
 # names of the contacts in the admin group
 nagios_admin_contacts:
 - xxx
+
+
+# interval for updating ganglia-nagios metric cache in seconds
+nagios_check_ganglia_cache_update_interval: 12
+
+# memory allocatable for the php doing metric cache updating 
+nagios_check_ganglia_cache_update_php_memory: 2048M
+
+# expire time of the ganglia-nagios metric cache in seconds 
+nagios_check_ganglia_cache_expire_time: 720
     

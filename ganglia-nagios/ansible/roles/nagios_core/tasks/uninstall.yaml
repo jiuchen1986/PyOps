@@ -14,6 +14,18 @@
       enabled: no
     ignore_errors: yes
     
+  - name: Stop ganglia nagios cache updating service
+    systemd:
+      name: cacheupdater
+      state: stopped
+      enabled: no
+    ignore_errors: yes
+    
+  - name: Remove cache updating service's config
+    shell: rm -rf cacheupdater.service
+    args:
+      chdir: /usr/lib/systemd/system/
+    
   - name: Clear conf.d
     shell: rm -rf *
     args:

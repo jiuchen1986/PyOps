@@ -1,0 +1,19 @@
+#!/bin/sh
+
+#################################################################
+# This script will warmup the cache periodically (specified
+# by SLEEP_TIME). This is useful if you have lots of Nagios
+# checks 
+#################################################################
+SLEEP_TIME={{ nagios_check_ganglia_cache_update_interval }}
+
+SCRIPT_HOME=${0%/*}
+
+# Go into an infinite loop
+while [ 1 ]; do
+
+  echo "Metric cache - "`date`
+  php $SCRIPT_HOME/warmup_metric_cache.php
+  sleep $SLEEP_TIME
+
+done

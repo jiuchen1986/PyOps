@@ -173,6 +173,12 @@ nagios_check_ganglia_metrics:
   oper: more
   warn_val: 50
   crit_val: 90
+- name: cpu_multi
+# this is used to aggregate multiple metrics in a single check
+# each element is in the form of <metric_name>,<oper>,<warn_val>,<oper>,<crit_val>
+  multi_metrics:
+  - cpu_wio,more,50,more,90
+  - cpu_idle,less,50,less,10
 - name: disk_free_percent_rootfs
   oper: less
   warn_val: 40

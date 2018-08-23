@@ -100,7 +100,12 @@ define service {
 {% if not metric.notify | default('yes' | bool) %}
   notifications_enabled 0
 {% endif %}
+{% if metric.multi_metrics is defined %}
+{% set args = metric.multi_metrics | join(':') %}
+  check_command check_ganglia_metric!{{ args }}
+{% else %}
   check_command check_ganglia_metric!{{ metric.name }},{{ metric.oper }},{{ metric.warn_val }},{{ metric.oper }},{{ metric.crit_val }}
+{% endif %}  
 }
 
 {% if nagios_check_ganglia_service_dependency | default('yes' | bool) %}
@@ -186,7 +191,12 @@ define service {
 {% if not metric.notify | default('yes' | bool) %}
   notifications_enabled 0
 {% endif %}
+{% if metric.multi_metrics is defined %}
+{% set args = metric.multi_metrics | join(':') %}
+  check_command check_ganglia_metric!{{ args }}
+{% else %}
   check_command check_ganglia_metric!{{ metric.name }},{{ metric.oper }},{{ metric.warn_val }},{{ metric.oper }},{{ metric.crit_val }}
+{% endif %}
 }
 
 {% if nagios_check_ganglia_service_dependency | default('yes' | bool) %}

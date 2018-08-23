@@ -1,0 +1,17 @@
+[Unit]
+Description=Ganglia-Nagios Cache Updater
+After=gmetad.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/share/ganglia/nagios/warmup_metric_cache.sh >/dev/null 2>&1 &
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+

@@ -36,6 +36,8 @@ args = parser.parse_args()
 
 cluster_list = args.clusterlist.split(',')
 all_vars = {}
+success_clusters = []
+fail_clusters = {}
 
 if args.singlegen:
   sin_gen_file = os.path.abspath(args.singlegen)
@@ -89,46 +91,82 @@ if args.allvars == 'yes':
   all_vars['cluster_list'] = []
 
 for c in cluster_list:
-  if args.allvars == 'yes':
-    all_vars['cluster_list'].append(c)
-  
-  # fetch original inventory file from target cluster lb
-  cmd_str = "scp root@%s:/home/raket/inventory/hosts %s" % (c, ori_inv_file)
-  if os.system(cmd_str) != 0:
-    os._exit(1)
 
-  # generate inventory and vars file for a single cluster
+  # read contacts for the cluster
   contact_str = ''
   with open(contacts_file, 'r') as con_f:
     con = yaml.load(con_f)
     contact_str = ','.join(con.get(c, []))
     con_f.close()
+  if contact_str == '':
+    msg = "%s is not found in contacts file %s" % (c, contacts_file)
+    print(msg)
+    fail_clusters[c] = msg
+    continue
+  
+  # fetch original inventory file from target cluster lb
+  cmd_str = "scp root@%s:/home/raket/inventory/hosts %s" % (c, ori_inv_file)
+  if os.system(cmd_str) != 0:
+    msg = "failed to fetch original inventory of %s" % c
+    print(msg)
+    fail_clusters[c] = msg
+    continue
+
+  # generate inventory and vars file for a single cluster
   cmd_str = "%s -n %s -v %s -o %s -i %s -t short -g %s -c \"%s\"" % (sin_gen_file, c, bas_vars_file, \
                                                            abs_output_dir, ori_inv_file, ports_file, contact_str)
   if os.system(cmd_str) != 0:
-    os._exit(1)
+    msg = "failed to generate inv and vars for %s" % c
+    print(msg)
+    fail_clusters[c] = msg
+    continue
 
   # add hosts info to the hosts file on the cluster header host
   add_hosts_vars = os.path.join(abs_output_dir, c + "_hosts.yaml")
   cmd_str = "ansible-playbook -e \"@%s\" %s" % (add_hosts_vars, add_hosts_file)
   if os.system(cmd_str) != 0:
-    os._exit(1)
+    msg = "failed to edit hosts info on the header host for %s" % c
+    print(msg)
+    fail_clusters[c] = msg
+    continue
 
   # remove the original inventory file
   if os.system("rm -rf %s" % ori_inv_file) != 0:
-    os._exit(1)
+    msg = "%failed to delete original inv file for %s" % c
+    print(msg)
+    fail_clusters[c] = msg
+    continue
 
-  # copy vars file to the group_vars dir used by ansible playbook
-  shutil.copyfile(os.path.join(abs_output_dir, c + ".yaml"), os.path.join(group_vars_dir, c + ".yaml"))
-  print("copy %s -> %s" % (os.path.join(abs_output_dir, c + ".yaml"), os.path.join(group_vars_dir, c + ".yaml")))
-  
-  # copy inv file to the inventory dir used by ansible playbook
-  shutil.copyfile(os.path.join(abs_output_dir, c), os.path.join(inventory_dir, c))
-  print("copy %s -> %s" % (os.path.join(abs_output_dir, c), os.path.join(inventory_dir, c)))
+  try:
+    # copy vars file to the group_vars dir used by ansible playbook
+    shutil.copyfile(os.path.join(abs_output_dir, c + ".yaml"), os.path.join(group_vars_dir, c + ".yaml"))
+    print("copy %s -> %s" % (os.path.join(abs_output_dir, c + ".yaml"), os.path.join(group_vars_dir, c + ".yaml")))
+    
+    # copy inv file to the inventory dir used by ansible playbook
+    shutil.copyfile(os.path.join(abs_output_dir, c), os.path.join(inventory_dir, c))
+    print("copy %s -> %s" % (os.path.join(abs_output_dir, c), os.path.join(inventory_dir, c)))
+  except Exception, e:
+    msg = "error %s happened when copy files for %s" (e, c)
+    fail_clusters[c] = msg
+    continue
+
+  success_clusters.append(c)
+  if args.allvars == 'yes':
+    all_vars['cluster_list'].append(c)
+
+if success_clusters != []:
+  print("succeed to generate inv and vars file for %s" % ','.join(success_clusters))
+if fail_clusters != {}:
+  print("falied to generate inv and vars file for:")
+  for k in fail_clusters:
+    print("     %s: %s" % (k, fail_clusters[k]))
 
 # add clusters to the cluster_list field to the all.yaml in the group_vars dir
 if args.allvars == 'yes':
-  with open(os.path.join(group_vars_dir, 'all.yaml'), 'w') as all_vars_file:
-    print("set %s to cluster_list in %s" % (args.clusterlist, os.path.join(group_vars_dir, 'all.yaml')))
-    yaml.dump(all_vars, all_vars_file, default_flow_style=False)
-    all_vars_file.close()
+  if success_clusters == []:
+    print("no cluster is added to %s" % os.path.join(group_vars_dir, 'all.yaml'))
+  else:
+    with open(os.path.join(group_vars_dir, 'all.yaml'), 'w') as all_vars_file:
+      print("set %s to cluster_list in %s" % (','.join(success_clusters), os.path.join(group_vars_dir, 'all.yaml')))
+      yaml.dump(all_vars, all_vars_file, default_flow_style=False)
+      all_vars_file.close()
