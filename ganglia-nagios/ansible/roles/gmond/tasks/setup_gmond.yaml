@@ -31,8 +31,11 @@
 - name: Configure for system requirement
   include_tasks: config_system.yaml
   
+- name: Start gmond service
+  include_tasks: start_gmond_service.yaml
+  
 - name: Add customized gmond python modules and related files
   include_tasks: add_modules_and_files.yaml
 
-- name: Start gmond service
-  include_tasks: start_gmond_service.yaml
+- name: Restart gmond service
+  include_tasks: restart_gmond_service.yaml
